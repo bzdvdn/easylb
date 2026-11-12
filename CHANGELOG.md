@@ -6,6 +6,16 @@ semantic versioning once it reaches 1.0.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-12
+
+### Changed
+
+- Update Kubernetes patch dependencies to `0.34.13`.
+- Update Go minor/patch dependencies, including `prometheus/client_golang`
+  and `golang.org/x/net`.
+- Update GitHub Actions to current major versions and validate the release
+  workflow with them.
+
 ## [0.1.1] - 2026-11-12
 
 ### Added

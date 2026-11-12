@@ -1,0 +1,45 @@
+name: Feature request
+description: Propose a feature or describe a missing use case
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What are you trying to do? What is missing or painful today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the behavior, API, or configuration you expect.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Existing workarounds, MetalLB behavior, or other tools.
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Area
+      multiple: true
+      options:
+        - Controller / VIPBinding / VIPPool
+        - L2 speaker (ARP/NDP)
+        - MetalLB compatibility
+        - Gateway API
+        - Helm chart
+        - Documentation
+        - Metrics/observability
+        - Other
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I checked ROADMAP.md and existing issues.
+          required: true

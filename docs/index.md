@@ -1,3 +1,5 @@
+![easyLB](assets/easylb-banner.svg)
+
 # easyLB
 
 A lightweight Kubernetes LoadBalancer controller for bare-metal, on-prem,
@@ -117,6 +119,7 @@ English:
 - [Migrating from MetalLB](en/migration-metallb.md)
 - [Migrating from ServiceLB](en/migration-servicelb.md)
 - [Roadmap](roadmap.md)
+- [Community](community.md)
 - [Examples](https://github.com/bzdvdn/easylb/tree/main/examples)
 - [Architecture decisions](en/decisions/0001-publish-only-controller.md)
 

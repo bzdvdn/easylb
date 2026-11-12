@@ -3,7 +3,7 @@ site_description: Lightweight Kubernetes LoadBalancer controller and ServiceLB/M
 site_author: easyLB contributors
 repo_url: https://github.com/bzdvdn/easylb
 repo_name: bzdvdn/easylb
-edit_uri: edit/main/docs/
+edit_uri: edit/master/docs/
 
 theme:
   name: material
@@ -30,6 +30,7 @@ plugins:
 nav:
   - Home: index.md
   - Roadmap: roadmap.md
+  - Community: community.md
   - English:
       - Architecture: en/architecture.md
       - Configuration: en/configuration.md

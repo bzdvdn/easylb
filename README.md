@@ -1,11 +1,21 @@
+![easyLB](docs/assets/easylb-banner.svg)
+
 # easyLB
+
+[![CI](https://github.com/bzdvdn/easylb/actions/workflows/ci.yaml/badge.svg)](https://github.com/bzdvdn/easylb/actions/workflows/ci.yaml)
+[![E2E](https://github.com/bzdvdn/easylb/actions/workflows/e2e.yaml/badge.svg)](https://github.com/bzdvdn/easylb/actions/workflows/e2e.yaml)
+[![Docs](https://github.com/bzdvdn/easylb/actions/workflows/docs.yaml/badge.svg)](https://bzdvdn.github.io/easylb/)
+[![Release](https://img.shields.io/github/v/release/bzdvdn/easylb?sort=semver)](https://github.com/bzdvdn/easylb/releases)
+[![Go](https://img.shields.io/github/go-mod/go-version/bzdvdn/easylb)](go.mod)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 **English** | [Русский](README.ru.md)
 
-A lightweight Kubernetes LoadBalancer controller for bare-metal, on-prem,
-k3s and RKE2 clusters. It publishes node IPs and VIPs into
-`Service.status.loadBalancer.ingress` and leaves the entire dataplane to the
-built-in **kube-proxy** — no extra pod, NAT hop, or packet proxying.
+**Lightweight Kubernetes LoadBalancer and ServiceLB / MetalLB L2 replacement for bare-metal, on-prem, k3s and RKE2 clusters.**
+
+easyLB publishes node IPs and VIPs into `Service.status.loadBalancer.ingress`
+and leaves the entire dataplane to the built-in **kube-proxy** — no extra pod,
+NAT hop, or packet proxying.
 
 It is a drop-in replacement for the k3s/RKE2 ServiceLB and for MetalLB's L2
 mode in small bare-metal clusters that do not need BGP or MetalLB's advanced
@@ -80,6 +90,20 @@ easyLB is **not** intended for:
 - CRD-only configuration; no annotations on ingress/gateway Services.
 - Optional native Gateway API integration: a `Gateway` becomes a `VIPBinding`.
 - Helm chart, published as an OCI artifact.
+
+## Comparison
+
+| | ServiceLB | MetalLB L2 | easyLB |
+|---|---|---|---|
+| Dataplane | hostPort + `svclb` pods | kube-proxy | kube-proxy |
+| IPAM | no | `IPAddressPool` | `VIPPool` |
+| L2 ARP/NDP | no | yes | yes |
+| BGP | no | yes | no (out of scope) |
+| Source IP | can be lost through `svclb` | preserved with `Local` | preserved with `Local` |
+| Configuration | implicit in k3s | CRD/Helm | CRD/Helm |
+| Best for | simple node-IP LB | full bare-metal LB | small bare-metal, no BGP |
+
+Full comparison: [docs/en/comparison.md](docs/en/comparison.md).
 
 ## VIP modes
 
@@ -276,6 +300,21 @@ See [docs/en/gateway-api.md](docs/en/gateway-api.md).
 - easyLB does not detect a conflict with an external VIP owner. One VIP must
   have exactly one owner; this is a configuration responsibility.
 
+## Community
+
+- Questions and ideas: [GitHub Discussions](https://github.com/bzdvdn/easylb/discussions)
+- Bugs and feature requests: [Issues](https://github.com/bzdvdn/easylb/issues)
+- Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Security: [SECURITY.md](SECURITY.md)
+- Adopters: [ADOPTERS.md](ADOPTERS.md)
+- Roadmap: [ROADMAP.md](ROADMAP.md)
+
+If easyLB is useful, a star and sharing the project help others find it.
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE).
+
 ## Documentation
 
 Rendered docs: <https://bzdvdn.github.io/easylb/>
@@ -294,6 +333,7 @@ English:
 - [Migrating from ServiceLB](docs/en/migration-servicelb.md)
 - [Roadmap](ROADMAP.md)
 - [Examples](examples/README.md)
+- [Community](docs/community.md)
 - [Architecture decisions](docs/en/decisions/)
 
 Russian:

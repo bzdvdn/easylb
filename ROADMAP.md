@@ -102,6 +102,17 @@ Status: `[x]` done, `[ ]` not done yet.
 - [x] k3d/k3s e2e workflow: auto-allocation, Service status, and binding GC.
 - [x] Local k3d e2e passed (VIP allocated, published, and released).
 
+### Community and project
+
+- [x] Apache-2.0 license.
+- [x] `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `CHANGELOG.md`,
+  and `ADOPTERS.md`.
+- [x] Issue templates, pull request template, Dependabot, and CodeQL workflow.
+- [x] Repository setup checklist for description, topics, social preview,
+  Discussions, Pages, and package visibility.
+- [x] README badges, banner, comparison table, and community links.
+- [x] Docs community page with support and contribution paths.
+
 ### Documentation
 
 - [x] README (EN/RU) with positioning as a ServiceLB + MetalLB L2 replacement.

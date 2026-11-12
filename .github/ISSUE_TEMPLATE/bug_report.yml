@@ -1,0 +1,61 @@
+name: Bug report
+description: Report a reproducible problem with easyLB
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please remove secrets and private IPs if they
+        are sensitive.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: A clear description of the expected and actual behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      description: Commands, manifests, or a minimal values file.
+      placeholder: |
+        kubectl apply -f ...
+        kubectl get vipbinding -A
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Fill in as much as possible.
+      value: |
+        - easyLB version/chart:
+        - Kubernetes/k3s/RKE2:
+        - Install method (Helm/static):
+        - VIP mode (external/l2):
+        - Data plane (ingress-nginx/Gateway API/other):
+        - CNI/kube-proxy mode:
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant values/manifests
+      description: VIPPool, VIPBinding, Service, Gateway annotations (redact secrets).
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs/events
+      description: Controller/speaker logs and `kubectl get events`.
+      render: text
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues.
+          required: true
+        - label: I removed secrets and sensitive addresses.
+          required: true

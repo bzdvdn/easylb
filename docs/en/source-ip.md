@@ -88,10 +88,11 @@ kubectl -n ingress-nginx get svc my-release-ingress-nginx-controller \
 
 ## L2 VIP and ICMP
 
-An `l2` VIP is not assigned to the interface. The speaker only answers ARP, so:
+An `l2` VIP is not assigned to the interface. The speaker answers ARP for IPv4
+and NDP for IPv6, but never ICMP echo, so:
 
 - `ping` does not work — expected;
-- `arping` works;
+- `arping` works for IPv4; use `ip -6 neigh` and TCP checks for IPv6;
 - TCP/UDP through kube-proxy works;
 - use TCP health checks (`curl`, `/healthz`, `nc`), not ICMP.
 

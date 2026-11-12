@@ -8,6 +8,8 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/mdlayher/arp"
+
+	"github.com/bzdvdn/easylb/internal/metrics"
 )
 
 var broadcastHardwareAddr = net.HardwareAddr{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
@@ -26,6 +28,9 @@ func newARPResponder(iface *net.Interface, vips []netip.Addr) (*arpResponder, er
 	}
 	addresses := make(map[netip.Addr]struct{}, len(vips))
 	for _, vip := range vips {
+		if !vip.Is4() {
+			continue
+		}
 		addresses[vip.Unmap()] = struct{}{}
 	}
 	return &arpResponder{
@@ -53,6 +58,7 @@ func (r *arpResponder) Run(ctx context.Context, logger logr.Logger) {
 		packet, _, err := r.client.Read()
 		if err != nil {
 			if ctx.Err() == nil {
+				metrics.SpeakerErrors.WithLabelValues(r.iface.Name, "arp", "read").Inc()
 				logger.Error(err, "ARP read failed", "interface", r.iface.Name)
 			}
 			return
@@ -68,6 +74,7 @@ func (r *arpResponder) Run(ctx context.Context, logger logr.Logger) {
 		err = r.client.Reply(packet, r.iface.HardwareAddr, packet.TargetIP)
 		r.writeMu.Unlock()
 		if err != nil {
+			metrics.SpeakerErrors.WithLabelValues(r.iface.Name, "arp", "reply").Inc()
 			logger.V(1).Info("failed to send ARP reply", "interface", r.iface.Name, "error", err.Error())
 		}
 	}
@@ -80,6 +87,7 @@ func (r *arpResponder) gratuitous(vip netip.Addr, logger logr.Logger) {
 	request, err := arp.NewPacket(arp.OperationRequest, r.iface.HardwareAddr, vip, broadcastHardwareAddr, vip)
 	if err == nil {
 		if err := r.client.WriteTo(request, broadcastHardwareAddr); err != nil {
+			metrics.SpeakerErrors.WithLabelValues(r.iface.Name, "arp", "write").Inc()
 			logger.V(1).Info("failed to send gratuitous ARP request", "vip", vip.String(), "error", err.Error())
 		}
 	}
@@ -87,6 +95,7 @@ func (r *arpResponder) gratuitous(vip netip.Addr, logger logr.Logger) {
 	reply, err := arp.NewPacket(arp.OperationReply, r.iface.HardwareAddr, vip, broadcastHardwareAddr, vip)
 	if err == nil {
 		if err := r.client.WriteTo(reply, broadcastHardwareAddr); err != nil {
+			metrics.SpeakerErrors.WithLabelValues(r.iface.Name, "arp", "write").Inc()
 			logger.V(1).Info("failed to send gratuitous ARP reply", "vip", vip.String(), "error", err.Error())
 		}
 	}

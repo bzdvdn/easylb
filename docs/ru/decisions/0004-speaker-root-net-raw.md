@@ -4,9 +4,9 @@
 
 ## Проблема
 
-Speaker открывает `AF_PACKET` сокет для ARP. Non-root контейнер с `NET_RAW`
-может получить `operation not permitted`, потому что default runtime не даёт
-эффективный capability.
+Speaker открывает raw-сокеты для ARP и ICMPv6 NDP. Non-root контейнер с
+`NET_RAW` может получить `operation not permitted`, потому что default runtime
+не даёт эффективный capability.
 
 ## Ограничения
 

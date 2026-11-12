@@ -45,6 +45,7 @@ func main() {
 		nodeIPTypes             string
 		publishNodeIPs          bool
 		enableGatewayAPI        bool
+		autoAssignServices      bool
 		requeueAfter            time.Duration
 	)
 
@@ -60,6 +61,7 @@ func main() {
 	flag.StringVar(&nodeIPTypes, "node-ip-types", "InternalIP", "Comma-separated node address types to publish (InternalIP, ExternalIP).")
 	flag.BoolVar(&publishNodeIPs, "publish-node-ips", true, "Publish node IPs in addition to VIPs.")
 	flag.BoolVar(&enableGatewayAPI, "enable-gateway-api", false, "Enable the optional Gateway API -> VIPBinding integration. Requires the Gateway API v1 CRDs.")
+	flag.BoolVar(&autoAssignServices, "auto-assign-services", true, "Create VIPBinding objects automatically for matching LoadBalancer Services and VIPPools.")
 	flag.DurationVar(&requeueAfter, "requeue-after", 5*time.Minute, "Periodic reconcile interval.")
 	flag.Parse()
 
@@ -114,6 +116,20 @@ func main() {
 		os.Exit(1)
 	}
 
+	if autoAssignServices {
+		allocationReconciler := &controller.ServiceAllocationReconciler{
+			Client:       mgr.GetClient(),
+			Recorder:     mgr.GetEventRecorderFor("easylb-autobind"),
+			LBClass:      lbClass,
+			RequireClass: requireClass,
+			RequeueAfter: requeueAfter,
+		}
+		if err := allocationReconciler.SetupWithManager(mgr); err != nil {
+			ctrl.Log.Error(err, "unable to create Service allocation controller")
+			os.Exit(1)
+		}
+	}
+
 	if enableGatewayAPI {
 		gatewayReconciler := &controller.GatewayReconciler{
 			Client:       mgr.GetClient(),
@@ -140,6 +156,7 @@ func main() {
 		"nodeIPTypes", nodeIPTypes,
 		"publishNodeIPs", publishNodeIPs,
 		"gatewayAPI", enableGatewayAPI,
+		"autoAssignServices", autoAssignServices,
 		"leaderElect", leaderElect,
 		"leaderElectionNamespace", leaderElectionNamespace,
 	)

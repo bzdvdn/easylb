@@ -90,3 +90,19 @@ func Expand(addresses []string) ([]netip.Addr, error) {
 	})
 	return out, nil
 }
+
+// FilterBuggyIPv4 removes IPv4 addresses ending in .0 or .255, matching the
+// MetalLB avoidBuggyIPs behavior.
+func FilterBuggyIPv4(addresses []netip.Addr) []netip.Addr {
+	out := make([]netip.Addr, 0, len(addresses))
+	for _, addr := range addresses {
+		if addr.Is4() {
+			octets := addr.As4()
+			if octets[3] == 0 || octets[3] == 255 {
+				continue
+			}
+		}
+		out = append(out, addr)
+	}
+	return out
+}

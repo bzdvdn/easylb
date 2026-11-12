@@ -37,12 +37,16 @@ source IP is preserved, and no `svclb` pods or extra NAT hop are needed.
   extra NAT hop.
 - Replaces MetalLB L2 mode for small clusters: `VIPPool` IPAM, ARP
   advertisement, per-VIP leader election, and failover without BGP.
+- MetalLB-style automatic allocation: matching `LoadBalancer` Services get a
+  `VIPBinding` and VIP without creating CRs by hand.
 - Publishes node IPs and VIPs into `status.loadBalancer.ingress`.
 - Bring-your-own-VIP mode (`external`) for keepalived/VRRP, hardware LBs, or
   any externally managed address.
-- Native L2 mode (`l2`): easyLB owns the VIP and advertises it with ARP.
+- Native L2 mode (`l2`): easyLB owns the VIP and advertises IPv4 with ARP and
+  IPv6 with NDP.
 - Source IP preservation with `externalTrafficPolicy: Local`.
 - HA controller: multiple replicas, leader election, PDB, node spreading.
+- Prometheus metrics and an optional ServiceMonitor.
 - CRD-only configuration; no annotations on ingress/gateway Services.
 - Optional native Gateway API integration: a `Gateway` becomes a `VIPBinding`.
 - Helm chart, published as an OCI artifact.
@@ -80,6 +84,9 @@ bindings:
     poolRef: ingress-vips
 ```
 
+Omit `bindings` to let a pool with `autoAssign: true` create `auto-<service>`
+bindings automatically, like MetalLB.
+
 ## Gateway API
 
 easyLB works with any Gateway API implementation that exposes its data plane
@@ -107,6 +114,8 @@ English:
 - [Operations and HA](en/operations.md)
 - [Troubleshooting](en/troubleshooting.md)
 - [Comparison](en/comparison.md)
+- [Migrating from MetalLB](en/migration-metallb.md)
+- [Roadmap](roadmap.md)
 - [Architecture decisions](en/decisions/0001-publish-only-controller.md)
 
 Russian:
@@ -118,6 +127,8 @@ Russian:
 - [Эксплуатация и HA](ru/operations.md)
 - [Troubleshooting](ru/troubleshooting.md)
 - [Сравнение](ru/comparison.md)
+- [Миграция с MetalLB](ru/migration-metallb.md)
+- [Roadmap](roadmap.md)
 - [Архитектурные решения](ru/decisions/0001-publish-only-controller.md)
 
 ## Limitations
@@ -125,7 +136,6 @@ Russian:
 - no `loadBalancerSourceRanges`;
 - no hostPort/NAT fallback for public clouds;
 - no BGP/ECMP or MetalLB features beyond L2;
-- IPv6 for `l2`/NDP is not implemented yet;
 - `mode: bgp` is reserved but not implemented;
 - CRDs from Helm `crds/` are not updated by `helm upgrade`;
 - the speaker requires `hostNetwork`, root and `NET_RAW`;

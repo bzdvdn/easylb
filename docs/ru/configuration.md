@@ -20,6 +20,14 @@ spec:
     - 192.168.56.240-192.168.56.249
     - 192.168.57.10/32
   autoAssign: true
+  mode: l2
+  serviceAllocation:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: ingress-nginx
+    serviceSelector:
+      matchLabels:
+        app.kubernetes.io/name: ingress-nginx
 ```
 
 Поля:
@@ -28,6 +36,9 @@ spec:
 |---|---|
 | `spec.addresses` | список IP, CIDR или диапазонов `a-b`; IPv4 и IPv6 |
 | `spec.autoAssign` | разрешить автоматическую аллокацию (по умолчанию `true`) |
+| `spec.avoidBuggyIPs` | пропускать IPv4-адреса с последним октетом `.0`/`.255` |
+| `spec.mode` | режим для auto-created binding'ов: `l2` (по умолчанию) или `external` |
+| `spec.serviceAllocation` | опциональные `namespaceSelector`/`serviceSelector` для автоаллокации |
 
 Ограничения:
 
@@ -35,6 +46,69 @@ spec:
 - адреса не проверяются на занятость в сети — только на пересечения между
   `VIPBinding` и аннотациями больше нет;
 - один пул может использоваться несколькими binding'ами.
+
+## Автоматическая аллокация для Service {#auto-allocation}
+
+При `autoAssign: true` (по умолчанию) easyLB ведёт себя как MetalLB L2:
+смотрит `LoadBalancer` Service и создаёт `VIPBinding` для Service, у которого
+его ещё нет. Создавать binding на каждый Service вручную больше не нужно.
+
+```yaml
+apiVersion: easylb.io/v1alpha1
+kind: VIPPool
+metadata:
+  name: default-vips
+spec:
+  addresses:
+    - 192.168.56.240-192.168.56.249
+  autoAssign: true
+  mode: l2
+  serviceAllocation:
+    namespaceSelector:
+      matchLabels:
+        environment: production
+    serviceSelector:
+      matchLabels:
+        team: platform
+```
+
+Поведение:
+
+- controller создаёт `auto-<service-name>` в namespace Service с ownerReference
+  на Service;
+- удаление Service удаляет binding и освобождает адрес;
+- если уже есть ручной или Gateway-binding, автоаллокация пропускается, а
+  существующий auto-binding удаляется в пользу явного;
+- `serviceAllocation` опционален. Если не задан, пул доступен всем Service.
+  Пустой selector совпадает со всем;
+- если на Service указан `metallb.io/address-pool` (или legacy
+  `metallb.universe.tf/address-pool`), используется именно этот пул, и
+  `autoAssign` для него не обязателен;
+- `easylb.io/auto-assign: "false"` на Service отключает автоаллокацию для него;
+- `controller.autoAssignServices: false` отключает функцию глобально;
+- пулы перебираются по имени; исчерпанный пул пропускается в пользу
+  следующего подходящего;
+- `avoidBuggyIPs: true` пропускает IPv4-адреса с последним октетом `.0`/`.255`;
+- если пул исчез или перестал совпадать, существующий auto-binding сохраняется,
+  чтобы не рвать трафик. Для освобождения VIP удали binding вручную.
+
+Совместимость с MetalLB для auto-allocated Service:
+
+| Поле / аннотация Service | Действие |
+|---|---|
+| `spec.loadBalancerIP` | запрошенный адрес; по возможности из пула |
+| `metallb.io/loadBalancerIPs` | список запрошенных адресов через запятую |
+| `metallb.universe.tf/loadBalancerIPs` | legacy alias |
+| `metallb.io/address-pool` | выбрать `VIPPool` по имени |
+| `metallb.universe.tf/address-pool` | legacy alias |
+| `metallb.io/allow-shared-ip` | делить VIP с другими Service с тем же ключом |
+| `metallb.universe.tf/allow-shared-ip` | legacy alias |
+
+Несколько запрошенных адресов сохраняются как явные `VIPBinding.spec.vips`.
+Service с одинаковым `metallb.io/allow-shared-ip` (или legacy
+`metallb.universe.tf/allow-shared-ip`) делят VIP, если их порты не пересекаются;
+auto-binding'и выставляют `spec.sharingKey` автоматически.
+`loadBalancerSourceRanges` пока не реализован.
 
 ## VIPBinding
 
@@ -63,13 +137,43 @@ spec:
 | `spec.vips` | явный список VIP; взаимоисключающе с `poolRef` |
 | `spec.poolRef.name` | имя `VIPPool` |
 | `spec.requestedIP` | конкретный IP из пула; только с `poolRef` |
+| `spec.sharingKey` | разрешить нескольким Service делить VIP при одинаковом ключе и непересекающихся портах |
 
 Правила:
 
 - либо `vips`, либо `poolRef`; оба одновременно — ошибка;
-- один и тот же IP не может быть заявлен двумя binding'ами;
+- один и тот же IP не может быть заявлен двумя binding'ами, если у обоих не
+  задан одинаковый непустой `sharingKey` и порты их Service не пересекаются;
 - `mode` относится ко всему binding'у. Для смешанного случая (часть VIP на
   keepalived, часть на easyLB) создаются **два binding'а** на один Service.
+
+### Явные VIP без пула
+
+`VIPPool` не обязателен. Если VIP уже известен, укажи его в `spec.vips` и не
+используй `poolRef`/`requestedIP`:
+
+```yaml
+apiVersion: easylb.io/v1alpha1
+kind: VIPBinding
+metadata:
+  name: ingress-keepalived
+  namespace: ingress-nginx
+spec:
+  serviceRef:
+    name: my-release-ingress-nginx-controller
+  mode: external
+  vips:
+    - 192.168.56.250
+```
+
+Это минимальная конфигурация для исходной проблемы с keepalived: VIP
+принадлежит keepalived, easyLB публикует его в
+`Service.status.loadBalancer.ingress`, а kube-proxy сохраняет client source IP
+при `externalTrafficPolicy: Local`. Пул и speaker не нужны.
+
+Для VIP под управлением easyLB используй `mode: l2` с тем же явным `vips` и
+включённым speaker. Автоаллокация работает только с `VIPPool`; ручной binding
+она никогда не перезаписывает.
 
 ### Статус
 
@@ -174,6 +278,7 @@ controller:
 | `--load-balancer-class` | `easylb.io/easylb` | класс Service |
 | `--require-class` | `true` | требовать `spec.loadBalancerClass` |
 | `--enable-gateway-api` | `false` | смотреть `Gateway` в `gateway.networking.k8s.io/v1` и создавать `VIPBinding` |
+| `--auto-assign-services` | `true` | автоматически создавать `VIPBinding` для подходящих Service |
 | `--node-ip-types` | `InternalIP` | какие адреса нод публиковать |
 | `--publish-node-ips` | `true` | публиковать ли IP нод |
 | `--leader-elect` | `false` | leader election |
@@ -209,6 +314,7 @@ controller:
   publishNodeIPs: true
   nodeIPTypes: InternalIP
   requireClass: false        # нужно для data-plane Service без класса (Gateway API)
+  autoAssignServices: true
   leaderElect: true
   pdb:
     enabled: true
@@ -225,11 +331,22 @@ speaker:
 gatewayAPI:
   enabled: false
 
+metrics:
+  service:
+    enabled: true
+  serviceMonitor:
+    enabled: false
+
 pools:
   ingress-vips:
     addresses:
       - 192.168.56.240-192.168.56.249
     autoAssign: true
+    mode: l2
+    serviceAllocation:
+      namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
 
 bindings:
   ingress-keepalived:
@@ -269,8 +386,9 @@ Service; после этого controller начнёт публиковать VI
 
 ## Конфликты
 
-- Один VIP не может быть в двух binding'ах.
+- Один VIP не может быть в двух binding'ах, если у них нет общего
+  `sharingKey` и непересекающихся портов.
 - Один VIP не может быть одновременно в `mode: l2` и в keepalived.
-- `VIP:port` должен быть уникален: два разных Service на одном `VIP:80`
-  невозможны; для разных доменов на одном порту используйте один ingress с
-  Host/SNI-роутингом.
+- Один и тот же `VIP:port` не может использоваться двумя Service. Service с
+  одинаковым `sharingKey` могут делить VIP на разных портах; для разных
+  доменов на одном порту используйте один ingress с Host/SNI-роутингом.

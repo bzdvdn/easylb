@@ -107,10 +107,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			logger.V(1).Info("skipping invalid VIP", "vip", raw, "error", err.Error())
 			continue
 		}
-		if !addr.Is4() {
-			logger.V(1).Info("skipping IPv6 VIP (NDP is not implemented yet)", "vip", raw)
-			continue
-		}
 		addresses = append(addresses, addr.Unmap())
 	}
 	if len(addresses) == 0 {
@@ -229,6 +225,7 @@ func (r *Reconciler) ensure(key types.NamespacedName, vips []netip.Addr, iface *
 		iface,
 		r.KubeClient,
 		r.LeaseNamespace,
+		r.NodeName,
 		r.identity(),
 		r.LeaseDuration,
 		r.RenewDeadline,

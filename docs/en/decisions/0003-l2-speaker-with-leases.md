@@ -22,7 +22,7 @@ the LAN. The VIP must move between nodes when the owner fails.
 
 ## Decision
 
-Option 2: one Lease per `VIPBinding`, plus a userspace ARP responder. The VIP is
+Option 2: one Lease per `VIPBinding`, plus userspace ARP/NDP responders. The VIP is
 not assigned to the interface.
 
 ## Why

@@ -48,7 +48,8 @@ release.
 It does **not** remove:
 
 - CRDs from `charts/easylb/crds/`;
-- `VIPPool`/`VIPBinding` objects created outside the release;
+- `VIPPool`/`VIPBinding` objects created outside the release, including
+  `auto-<service>` bindings created by automatic allocation;
 - the `easylb-system` namespace (including `--create-namespace`);
 - `Service.status.loadBalancer.ingress` entries already published;
 - runtime Leases that are not deleted by a graceful shutdown;
@@ -137,14 +138,25 @@ controller_runtime_reconcile_total
 controller_runtime_reconcile_time_seconds
 ```
 
+Custom controller metrics:
+
+- `easylb_controller_vip_allocations_total{result,reason}`;
+- `easylb_controller_auto_bindings_total{action}`.
+
 Speaker (controller-runtime metrics on `:8082`):
 
 - `controller_runtime_reconcile_*` for the `vipbinding` controller;
 - logs: `advertising VIPs`, `stopped leading`, `failed to start ARP responder`,
-  `VIPAlreadyAssigned`;
+  `failed to start NDP responder`, `VIPAlreadyAssigned`;
+- `easylb_speaker_advertised_vips{node,binding}` — VIPs currently advertised;
+- `easylb_speaker_leader_changes_total{node}`;
+- `easylb_speaker_errors_total{interface,protocol,operation}`;
 - Leases in `easylb-system` show the current holder;
 - with kube-state-metrics, `kube_lease_owner` / `kube_lease_renew_time` are
   useful for Lease age.
+
+The chart can create metrics Services and a Prometheus Operator
+`ServiceMonitor` (`metrics.serviceMonitor.enabled: true`).
 
 Useful alerts:
 
@@ -166,7 +178,7 @@ cat /proc/sys/net/netfilter/nf_conntrack_max
 ## Security
 
 - Controller: non-root, read-only root filesystem, drops all capabilities.
-- Speaker: `hostNetwork`, root, `NET_RAW`; required for `AF_PACKET`/ARP. It
+- Speaker: `hostNetwork`, root, `NET_RAW`; required for ARP/NDP raw sockets. It
   drops all other capabilities.
 - With Pod Security Admission, the `easylb-system` namespace must allow the
   speaker, for example:

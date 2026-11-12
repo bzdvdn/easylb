@@ -1,0 +1,58 @@
+name: E2E
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  k3s:
+    name: k3s smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+
+      - name: Ensure kubectl
+        run: |
+          if ! command -v kubectl >/dev/null 2>&1; then
+            curl -sLO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+            chmod +x kubectl
+            sudo mv kubectl /usr/local/bin/kubectl
+          fi
+          kubectl version --client
+
+      - name: Build image
+        run: docker build -t easylb:e2e .
+
+      - name: Create k3d cluster
+        run: |
+          curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+          k3d cluster create easylb-e2e --agents 1 \
+            --k3s-arg "--disable=servicelb@server:*"
+          k3d image import -c easylb-e2e easylb:e2e
+          kubectl wait --for=condition=Ready nodes --all --timeout=180s
+
+      - name: Run allocation test
+        run: ./test/e2e/run.sh
+
+      - name: Collect diagnostics
+        if: failure()
+        run: |
+          kubectl -n easylb-system get pods -o wide || true
+          kubectl -n easylb-system logs deploy/easylb-controller --tail=200 || true
+          kubectl get vipbinding -A -o yaml || true
+
+      - name: Delete cluster
+        if: always()
+        run: k3d cluster delete easylb-e2e || true

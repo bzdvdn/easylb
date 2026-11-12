@@ -6,14 +6,15 @@ clusters. easyLB publishes node IPs and VIPs into
 
 It is a drop-in replacement for the k3s/RKE2 ServiceLB and for MetalLB's L2
 mode in small bare-metal clusters that do not need BGP. VIPs can be external
-(keepalived/VRRP, a hardware LB) or owned by easyLB's L2 speaker with ARP and
-per-VIP Leases.
+(keepalived/VRRP, a hardware LB) or owned by easyLB's L2 speaker with ARP,
+IPv6 NDP, and per-VIP Leases.
 
 - Chart type: application
 - Requires: Kubernetes `>=1.24`, Helm 3
 - CRDs: `VIPPool`, `VIPBinding` (installed on the first install)
 - Source: <https://github.com/bzdvdn/easylb>
 - Docs: <https://bzdvdn.github.io/easylb/>
+- MetalLB migration: <https://bzdvdn.github.io/easylb/en/migration-metallb/>
 
 ## Requirements
 
@@ -29,7 +30,7 @@ per-VIP Leases.
     - servicelb
   ```
 
-- The speaker opens `AF_PACKET` sockets and needs `hostNetwork`, root and
+- The speaker opens raw sockets for ARP/NDP and needs `hostNetwork`, root and
   `NET_RAW`. If Pod Security Admission is enforced, the namespace must allow it
   (for example `pod-security.kubernetes.io/enforce=privileged`).
 - For `l2` VIPs, choose addresses that are not assigned to any node interface
@@ -87,6 +88,7 @@ kubectl -n easylb-system get lease
 | `controller.loadBalancerClass` | `easylb.io/easylb` | class handled by easyLB |
 | `controller.requireClass` | `false` | only handle Services with `loadBalancerClass` |
 | `controller.publishNodeIPs` | `true` | publish node IPs together with VIPs |
+| `controller.autoAssignServices` | `true` | create `VIPBinding` automatically for matching Services |
 | `controller.nodeIPTypes` | `InternalIP` | `InternalIP`, `ExternalIP`, or both |
 | `controller.requeueAfter` | `5m` | periodic resync |
 | `controller.priorityClassName` | `system-cluster-critical` | priority class |
@@ -129,6 +131,21 @@ The speaker must run as root: non-root containers do not get an effective
 `NET_RAW` capability with the default runtime. It still drops all other
 capabilities and uses `NET_RAW` only for the ARP socket.
 
+### Metrics and ServiceMonitor
+
+| Value | Default | Description |
+|---|---|---|
+| `metrics.service.enabled` | `true` | create ClusterIP Services for controller/speaker metrics |
+| `metrics.serviceMonitor.enabled` | `false` | create a Prometheus Operator `ServiceMonitor` |
+| `metrics.serviceMonitor.interval` | `30s` | scrape interval |
+| `metrics.serviceMonitor.scrapeTimeout` | `10s` | scrape timeout |
+| `metrics.serviceMonitor.labels` | `{}` | extra labels for the ServiceMonitor |
+
+The metrics Services expose controller metrics on `8080` and speaker metrics on
+`8082`, both under the port name `metrics`. `ServiceMonitor` requires the
+Prometheus Operator CRDs; it is disabled by default so the chart renders
+without them.
+
 ### Gateway API
 
 | Value | Default | Description |
@@ -169,7 +186,28 @@ bindings:
 ```
 
 Binding fields: `namespace`, `serviceRef`, `mode` (`external` or `l2`), `vips`,
-`poolRef`, `requestedIP`. Use either `vips` or `poolRef`, not both.
+`poolRef`, `requestedIP`, `sharingKey`. Use either `vips` or `poolRef`, not both.
+`pools` is optional: an explicit `vips` binding works without any pool and is
+never overwritten by automatic allocation.
+
+Pool fields: `addresses`, `autoAssign`, `avoidBuggyIPs`, `mode` (`l2` by
+default), and `serviceAllocation.namespaceSelector` /
+`serviceAllocation.serviceSelector`.
+When `autoAssign` is enabled and a matching `LoadBalancer` Service has no
+`VIPBinding`, the controller creates `auto-<service>` with an owner reference to
+the Service. Deleting the Service deletes the binding and releases the VIP.
+Matching pools are tried in name order and exhausted pools are skipped.
+Manual and Gateway-created bindings take precedence.
+
+MetalLB compatibility for auto-allocated Services:
+
+- `spec.loadBalancerIP` and `metallb.io/loadBalancerIPs` (legacy
+  `metallb.universe.tf/loadBalancerIPs`) request explicit addresses;
+- `metallb.io/address-pool` (legacy `metallb.universe.tf/address-pool`) selects
+  a pool by name;
+- `metallb.io/allow-shared-ip` (legacy `metallb.universe.tf/allow-shared-ip`)
+  shares a VIP between Services with the same key and non-overlapping ports;
+- `easylb.io/auto-assign: "false"` on the Service disables auto-allocation.
 
 ## Examples
 
@@ -248,7 +286,8 @@ A complete runnable example is in
 - `helm uninstall` does not remove CRDs. Deleting a CRD deletes all
   `VIPPool`/`VIPBinding` objects.
 - `VIPPool`/`VIPBinding` rendered from `pools`/`bindings` are part of the
-  release and are removed on uninstall. Objects created manually are not.
+  release and are removed on uninstall. Objects created manually or by
+  automatic allocation (`auto-<service>`) are not.
 
 ## Uninstall and cleanup
 

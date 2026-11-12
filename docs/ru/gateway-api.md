@@ -201,6 +201,8 @@ Gateway и ownerReference на Gateway. Binding обновляется при и
   интеграцию easyLB — один VIP, один владелец;
 - если включить `gatewayAPI.enabled` без установленных Gateway API v1 CRD,
   controller не запустится: watch на Gateway не сможет синхронизироваться.
+- автоаллокация (`auto-<service>`) пропускается, если для Service уже есть
+  Gateway-binding, чтобы один Service не получил два VIP.
 
 ## Как найти data-plane Service
 
@@ -282,7 +284,6 @@ nc -vz <VIP> 443
 
 - easyLB не реализует Gateway API, а управляет только data-plane Service.
 - Нет enforcement `loadBalancerSourceRanges`.
-- IPv6 NDP для speaker пока не реализован.
 - BGP пока нет.
 - Имя data-plane Service может измениться при обновлении реализации Gateway;
   после апгрейда проверяй `VIPBinding`.

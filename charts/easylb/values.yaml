@@ -24,6 +24,9 @@ controller:
   requireClass: false
   publishNodeIPs: true
   nodeIPTypes: InternalIP
+  # Create VIPBinding objects automatically for LoadBalancer Services that
+  # match a VIPPool with autoAssign enabled. Manual/Gateway bindings win.
+  autoAssignServices: true
   requeueAfter: 5m
 
   priorityClassName: system-cluster-critical
@@ -121,6 +124,16 @@ speaker:
       cpu: 100m
       memory: 64Mi
 
+metrics:
+  service:
+    enabled: true
+  serviceMonitor:
+    # Requires the Prometheus Operator CRDs.
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
+    labels: {}
+
 gatewayAPI:
   # Optional Gateway API -> VIPBinding integration.
   # Requires the Gateway API v1 CRDs (gateway.networking.k8s.io/v1).
@@ -133,6 +146,15 @@ gatewayAPI:
 #     addresses:
 #       - 192.168.56.240-192.168.56.249
 #     autoAssign: true
+#     avoidBuggyIPs: true
+#     mode: l2
+#     serviceAllocation:
+#       namespaceSelector:
+#         matchLabels:
+#           kubernetes.io/metadata.name: ingress-nginx
+#       serviceSelector:
+#         matchLabels:
+#           app.kubernetes.io/name: ingress-nginx
 pools: {}
 
 # VIP bindings. Example:
@@ -151,5 +173,5 @@ pools: {}
 #     poolRef: ingress-vips
 #
 # Each binding supports:
-#   namespace, serviceRef, mode, vips, poolRef, requestedIP
+#   namespace, serviceRef, mode, vips, poolRef, requestedIP, sharingKey
 bindings: {}

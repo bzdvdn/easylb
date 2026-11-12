@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"net"
 	"net/netip"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -14,6 +15,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
+
+	"github.com/bzdvdn/easylb/internal/metrics"
 )
 
 type runner struct {
@@ -52,6 +55,7 @@ func startRunner(
 	iface *net.Interface,
 	kubeClient kubernetes.Interface,
 	leaseNamespace string,
+	nodeName string,
 	identity string,
 	leaseDuration time.Duration,
 	renewDeadline time.Duration,
@@ -90,22 +94,14 @@ func startRunner(
 			Name:            "easylb-speaker",
 			Callbacks: leaderelection.LeaderCallbacks{
 				OnStartedLeading: func(ctx context.Context) {
-					for {
-						responder, err := newARPResponder(iface, vips)
-						if err == nil {
-							logger.Info("advertising VIPs", "vips", addressesToStrings(vips), "interface", iface.Name)
-							responder.Run(ctx, logger)
-							return
-						}
-						logger.Error(err, "failed to start ARP responder", "interface", iface.Name)
-						select {
-						case <-ctx.Done():
-							return
-						case <-time.After(2 * time.Second):
-						}
-					}
+					binding := key.Namespace + "/" + key.Name
+					metrics.SpeakerLeaderChanges.WithLabelValues(nodeName).Inc()
+					metrics.SpeakerAdvertisedVIPs.WithLabelValues(nodeName, binding).Set(float64(len(vips)))
+					runResponders(ctx, iface, vips, logger)
 				},
 				OnStoppedLeading: func() {
+					binding := key.Namespace + "/" + key.Name
+					metrics.SpeakerAdvertisedVIPs.WithLabelValues(nodeName, binding).Set(0)
 					logger.Info("stopped leading", "vips", addressesToStrings(vips))
 				},
 				OnNewLeader: func(id string) {
@@ -121,6 +117,77 @@ func startRunner(
 	}()
 
 	return r
+}
+
+func runResponders(ctx context.Context, iface *net.Interface, vips []netip.Addr, logger logr.Logger) {
+	logger.Info("advertising VIPs", "vips", addressesToStrings(vips), "interface", iface.Name)
+
+	var wg sync.WaitGroup
+	if hasIPv4(vips) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			runARP(ctx, iface, vips, logger)
+		}()
+	}
+	if hasIPv6(vips) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			runNDP(ctx, iface, vips, logger)
+		}()
+	}
+	wg.Wait()
+}
+
+func runARP(ctx context.Context, iface *net.Interface, vips []netip.Addr, logger logr.Logger) {
+	for {
+		responder, err := newARPResponder(iface, vips)
+		if err == nil {
+			responder.Run(ctx, logger)
+		} else {
+			logger.Error(err, "failed to start ARP responder", "interface", iface.Name)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(2 * time.Second):
+		}
+	}
+}
+
+func runNDP(ctx context.Context, iface *net.Interface, vips []netip.Addr, logger logr.Logger) {
+	for {
+		responder, err := newNDPResponder(iface, vips)
+		if err == nil {
+			responder.Run(ctx, logger)
+		} else {
+			logger.Error(err, "failed to start NDP responder", "interface", iface.Name)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(2 * time.Second):
+		}
+	}
+}
+
+func hasIPv4(addresses []netip.Addr) bool {
+	for _, addr := range addresses {
+		if addr.Is4() {
+			return true
+		}
+	}
+	return false
+}
+
+func hasIPv6(addresses []netip.Addr) bool {
+	for _, addr := range addresses {
+		if !addr.Is4() {
+			return true
+		}
+	}
+	return false
 }
 
 func leaseName(key types.NamespacedName) string {

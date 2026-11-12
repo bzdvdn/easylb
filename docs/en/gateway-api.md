@@ -204,6 +204,8 @@ Notes:
   the easyLB integration for that Gateway — one VIP, one owner.
 - Enabling `gatewayAPI.enabled` without the Gateway API v1 CRDs makes the
   controller fail to start, because the Gateway watch cannot sync.
+- Automatic allocation (`auto-<service>`) is skipped when a Gateway-created
+  binding exists, so one Service does not get two VIPs.
 
 ## Finding the data-plane Service
 
@@ -289,7 +291,6 @@ nc -vz <VIP> 443
 - The native integration watches only `gateway.networking.k8s.io/v1`. New
   Gateway API resources and fields are ignored, not implemented.
 - No `loadBalancerSourceRanges` enforcement.
-- No IPv6 NDP for the speaker yet.
 - No BGP.
 - Data-plane Service names may change on Gateway implementation upgrades;
   re-check the `VIPBinding` after upgrades.

@@ -63,15 +63,19 @@ easyLB is **not** intended for:
   no extra NAT hop.
 - Replaces MetalLB L2 mode for small bare-metal clusters: `VIPPool` IPAM, ARP
   advertisement, per-VIP leader election, and failover without BGP.
+- MetalLB-style automatic allocation: matching `LoadBalancer` Services get a
+  `VIPBinding` and VIP without creating CRs by hand.
 - Publishes node IPs and VIPs into `status.loadBalancer.ingress`.
 - Bring-your-own-VIP mode (`external`) for keepalived/VRRP, hardware LBs, or
   any externally managed address.
-- Native L2 mode (`l2`): easyLB owns the VIP, advertises it with ARP and
-  provides leader election and failover through Kubernetes Leases.
+- Native L2 mode (`l2`): easyLB owns the VIP, advertises IPv4 with ARP and
+  IPv6 with NDP, and provides leader election and failover through Kubernetes
+  Leases.
 - Automatic VIP allocation from `VIPPool`, or explicit addresses in
   `VIPBinding`.
 - HA controller: multiple replicas, leader election, PDB, node spreading,
   optimistic locking on status updates.
+- Prometheus metrics and an optional ServiceMonitor.
 - Source IP preservation with `externalTrafficPolicy: Local`.
 - CRD-only configuration; no annotations on ingress/gateway Services.
 - Optional native Gateway API integration: a `Gateway` becomes a `VIPBinding`.
@@ -82,7 +86,7 @@ easyLB is **not** intended for:
 | Mode | VIP owner | Speaker | ICMP ping | Use case |
 |---|---|---|---|---|
 | `external` | keepalived/VRRP, hardware LB, or admin | no | yes, if assigned | integrate VIPs you already own; easyLB only publishes status |
-| `l2` | easyLB speaker | yes | no (ARP only) | complete HA LB without keepalived, BGP, or MetalLB |
+| `l2` | easyLB speaker | yes | no (ARP/NDP only) | complete HA LB without keepalived, BGP, or MetalLB |
 | `bgp` | reserved | future | — | future BGP mode |
 
 Both modes can be mixed on one Service: create one binding for an existing
@@ -157,6 +161,10 @@ bindings:
 ```
 
 A ready-to-use example is in `charts/easylb/values-example.yaml`.
+
+Alternatively, omit the `bindings` section: a pool with `autoAssign: true`
+creates `auto-<service>` bindings for matching `LoadBalancer` Services, like
+MetalLB. See [automatic allocation](docs/en/configuration.md#auto-allocation).
 
 ### 3. Verification
 
@@ -259,8 +267,6 @@ See [docs/en/gateway-api.md](docs/en/gateway-api.md).
 
 - no `loadBalancerSourceRanges`;
 - no hostPort/NAT fallback for public clouds;
-- IPv6 for `l2`/NDP is not implemented yet (the controller can publish IPv6,
-  but the speaker skips it);
 - `mode: bgp` is reserved but not implemented;
 - CRDs from Helm `crds/` are not updated by `helm upgrade`;
 - the speaker requires `hostNetwork`, root and `NET_RAW`; with Pod Security
@@ -284,6 +290,8 @@ English:
 - [Operations and HA](docs/en/operations.md)
 - [Troubleshooting](docs/en/troubleshooting.md)
 - [Comparison with ServiceLB/MetalLB/kube-vip](docs/en/comparison.md)
+- [Migrating from MetalLB](docs/en/migration-metallb.md)
+- [Roadmap](ROADMAP.md)
 - [Architecture decisions](docs/en/decisions/)
 
 Russian:
@@ -309,6 +317,7 @@ make sec            # standalone gosec scan
 make docker-build IMAGE=<registry>/easylb:<tag>
 make helm-lint
 make helm-template
+make e2e             # k3s/k3d smoke test (test/e2e/run.sh)
 ```
 
 Layout:
@@ -327,8 +336,8 @@ charts/easylb/         Helm chart
 
 ## Roadmap
 
-- IPv6 NDP for the speaker.
-- BGP/ECMP speaker (`mode: bgp`).
-- Metrics/ServiceMonitor and ready-made alerts.
-- Optional `loadBalancerSourceRanges` enforcement.
-- Better conflict diagnostics between external VIP owners and easyLB.
+See [ROADMAP.md](ROADMAP.md) for the full status, completed work, and planned
+features.
+
+Current focus: per-pool L2 advertisement selectors, e2e for shared VIPs/IPv6
+NDP, and ready-made alerts. BGP/BFD/ECMP remain out of scope.

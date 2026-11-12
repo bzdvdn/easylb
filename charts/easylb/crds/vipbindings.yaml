@@ -70,6 +70,8 @@ spec:
                     minLength: 1
               requestedIP:
                 type: string
+              sharingKey:
+                type: string
           status:
             type: object
             properties:

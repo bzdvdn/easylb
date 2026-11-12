@@ -20,6 +20,12 @@ pools:
     addresses:
       - 192.168.56.240-192.168.56.249
     autoAssign: true
+    avoidBuggyIPs: true
+    mode: l2
+    serviceAllocation:
+      namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
 
 bindings:
   ingress-easylb:

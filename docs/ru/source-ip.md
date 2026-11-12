@@ -88,11 +88,12 @@ kubectl -n ingress-nginx get svc my-release-ingress-nginx-controller \
 
 ## L2 VIP и ICMP
 
-`mode: l2` VIP не назначается на интерфейс. Speaker отвечает только на ARP.
+`mode: l2` VIP не назначается на интерфейс. Speaker отвечает на ARP (IPv4) и
+NDP (IPv6).
 Поэтому:
 
 - `ping` по VIP не работает — это нормально;
-- `arping` работает;
+- `arping` работает для IPv4; для IPv6 используй `ip -6 neigh` и TCP-проверки;
 - TCP/UDP через kube-proxy работает;
 - health-checkи делайте TCP (`curl`, `/healthz`, `nc`), не ICMP.
 

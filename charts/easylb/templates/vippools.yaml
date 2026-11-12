@@ -13,5 +13,15 @@ spec:
   {{- if hasKey $pool "autoAssign" }}
   autoAssign: {{ $pool.autoAssign }}
   {{- end }}
+  {{- if hasKey $pool "avoidBuggyIPs" }}
+  avoidBuggyIPs: {{ $pool.avoidBuggyIPs }}
+  {{- end }}
+  {{- if $pool.mode }}
+  mode: {{ $pool.mode }}
+  {{- end }}
+  {{- if $pool.serviceAllocation }}
+  serviceAllocation:
+    {{- toYaml $pool.serviceAllocation | nindent 4 }}
+  {{- end }}
 {{- end }}
 {{- end }}

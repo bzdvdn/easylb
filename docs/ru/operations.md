@@ -45,7 +45,8 @@ easyLB сам не ставит iptables/ipvs-правила: их создаё�
 Не удаляет:
 
 - CRD из `charts/easylb/crds/`;
-- `VIPPool`/`VIPBinding`, созданные вне релиза;
+- `VIPPool`/`VIPBinding`, созданные вне релиза, включая `auto-<service>`
+  bindings автоматической аллокации;
 - namespace `easylb-system` (включая созданный через `--create-namespace`);
 - уже опубликованные записи `Service.status.loadBalancer.ingress`;
 - runtime-Lease, которые не удалились при graceful shutdown;
@@ -135,13 +136,25 @@ controller_runtime_reconcile_total
 controller_runtime_reconcile_time_seconds
 ```
 
+Кастомные метрики controller'а:
+
+- `easylb_controller_vip_allocations_total{result,reason}`;
+- `easylb_controller_auto_bindings_total{action}`.
+
 Speaker (метрики на `:8082`):
 
 - `controller_runtime_reconcile_*` для контроллера `vipbinding`;
 - логи: `advertising VIPs`, `stopped leading`,
-  `failed to start ARP responder`, `VIPAlreadyAssigned`;
+  `failed to start ARP responder`, `failed to start NDP responder`,
+  `VIPAlreadyAssigned`;
+- `easylb_speaker_advertised_vips{node,binding}` — сколько VIP сейчас анонсируется;
+- `easylb_speaker_leader_changes_total{node}`;
+- `easylb_speaker_errors_total{interface,protocol,operation}`;
 - Lease в `easylb-system` показывают текущего holder'а;
 - с kube-state-metrics полезны `kube_lease_owner` и `kube_lease_renew_time`.
+
+Чарт умеет создавать metrics-Service'ы и `ServiceMonitor` для Prometheus
+Operator (`metrics.serviceMonitor.enabled: true`).
 
 Полезные алерты:
 
@@ -162,8 +175,8 @@ cat /proc/sys/net/netfilter/nf_conntrack_max
 ## Безопасность
 
 - Controller: non-root, read-only root filesystem, drop ALL.
-- Speaker: `hostNetwork`, root, `NET_RAW`; нужно для `AF_PACKET`/ARP. Остальные
-  capabilities сбрасываются.
+- Speaker: `hostNetwork`, root, `NET_RAW`; нужно для raw-сокетов ARP/NDP.
+  Остальные capabilities сбрасываются.
 - При Pod Security Admission namespace `easylb-system` должен разрешать
   speaker, например:
 

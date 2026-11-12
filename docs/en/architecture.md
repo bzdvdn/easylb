@@ -46,7 +46,9 @@ Does:
   enabled) plus VIPs from bindings;
 - patches `status.loadBalancer.ingress` with optimistic locking;
 - updates `VIPBinding` conditions;
-- never changes the Service `spec` and never touches keepalived.
+- when automatic allocation is enabled, creates `auto-<service>` bindings for
+  matching Services and cleans them up through owner references;
+- never changes the Service `spec` and never touches external VIP owners.
 
 Node IP selection:
 
@@ -57,7 +59,7 @@ Node IP selection:
 ### Speaker
 
 Optional (`speaker.enabled`). A DaemonSet on every node, `hostNetwork`, root +
-`NET_RAW`, because it opens an `AF_PACKET` socket for ARP.
+`NET_RAW`, because it opens raw sockets for ARP and IPv6 NDP.
 
 Watches `VIPBinding`, `Node`, `Service`, `EndpointSlice`. It processes only
 `mode: l2` and completely ignores `mode: external`.
@@ -76,15 +78,16 @@ For each `VIPBinding`:
    against a keepalived conflict).
 4. Participates in leader election through a `coordination.k8s.io/Lease`
    (one Lease per `VIPBinding`).
-5. The leader starts the ARP responder: it answers ARP requests for the VIP and
-   sends gratuitous ARP on takeover.
+5. The leader starts the ARP responder for IPv4 and the NDP responder for
+   IPv6: they answer ARP/neighbor solicitations for the VIP and send
+   gratuitous ARP/unsolicited neighbor advertisements on takeover.
 6. On loss of the Lease, loss of eligibility, or binding deletion, it stops the
    responder.
 
 The VIP is **not assigned to the interface** and is not added to `ip addr`. The
-kernel answers neither ARP nor ICMP for such an address: ARP is handled by the
-speaker, and ICMP is not answered at all. TCP/UDP is handled by kube-proxy via
-`KUBE-EXT` rules.
+kernel answers neither ARP/NDP nor ICMP for such an address: ARP/NDP is
+handled by the speaker, and ICMP echo is not answered at all. TCP/UDP is
+handled by kube-proxy via `KUBE-EXT` rules.
 
 ### Gateway API
 

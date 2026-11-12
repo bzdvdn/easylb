@@ -29,6 +29,7 @@ plugins:
 
 nav:
   - Home: index.md
+  - Roadmap: roadmap.md
   - English:
       - Architecture: en/architecture.md
       - Configuration: en/configuration.md
@@ -37,6 +38,7 @@ nav:
       - Operations and HA: en/operations.md
       - Troubleshooting: en/troubleshooting.md
       - Comparison: en/comparison.md
+      - Migrating from MetalLB: en/migration-metallb.md
       - Architecture decisions:
           - Publish only from the controller: en/decisions/0001-publish-only-controller.md
           - CRD as the source of truth: en/decisions/0002-crd-as-source-of-truth.md
@@ -52,6 +54,7 @@ nav:
       - Эксплуатация и HA: ru/operations.md
       - Troubleshooting: ru/troubleshooting.md
       - Сравнение: ru/comparison.md
+      - Миграция с MetalLB: ru/migration-metallb.md
       - Архитектурные решения:
           - Публикация только из controller: ru/decisions/0001-publish-only-controller.md
           - CRD как источник истины: ru/decisions/0002-crd-as-source-of-truth.md

@@ -46,7 +46,9 @@ Deployment в `easylb-system`, 2 реплики, leader election через Leas
   binding'ов;
 - патчит `status.loadBalancer.ingress` с optimistic lock;
 - обновляет `conditions` у `VIPBinding`;
-- не меняет `spec` Service и не трогает keepalived.
+- при включённой автоаллокации создаёт `auto-<service>` bindings для подходящих
+  Service и чистит их через ownerReference;
+- не меняет `spec` Service и не трогает внешних владельцев VIP.
 
 Политика выбора IP нод:
 
@@ -58,7 +60,7 @@ Deployment в `easylb-system`, 2 реплики, leader election через Leas
 ### Speaker
 
 Опционален (`speaker.enabled`). DaemonSet на каждой ноде, `hostNetwork`, root
-+ `NET_RAW`, потому что открывает `AF_PACKET` сокет для ARP.
++ `NET_RAW`, потому что открывает raw-сокеты для ARP и IPv6 NDP.
 
 Смотрит `VIPBinding`, `Node`, `Service`, `EndpointSlice`. Обрабатывает только
 `mode: l2`; `mode: external` полностью игнорирует.
@@ -77,13 +79,14 @@ Deployment в `easylb-system`, 2 реплики, leader election через Leas
    keepalived).
 4. Участвует в leader election через `coordination.k8s.io/Lease`
    (отдельный Lease на `VIPBinding`).
-5. Лидер запускает ARP responder: отвечает на ARP-запросы для VIP и шлёт
-   gratuitous ARP при takeover.
+5. Лидер запускает ARP responder для IPv4 и NDP responder для IPv6: они
+   отвечают на ARP/neighbor solicitation для VIP и шлют gratuitous
+   ARP/unsolicited neighbor advertisement при takeover.
 6. При потере Lease/eligibility/удалении binding останавливает responder.
 
 VIP **не назначается на интерфейс** и не добавляется в `ip addr`. Ядро не
-отвечает ни за ARP, ни за ICMP для такого адреса: ARP делает speaker, а
-ICMP не отвечает вообще. TCP/UDP обрабатывает kube-proxy по правилам
+отвечает ни за ARP/NDP, ни за ICMP для такого адреса: ARP/NDP делает speaker,
+а ICMP echo не отвечает вообще. TCP/UDP обрабатывает kube-proxy по правилам
 `KUBE-EXT`.
 
 ### Gateway API

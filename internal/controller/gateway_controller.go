@@ -259,7 +259,7 @@ func gatewayBindingName(name string) string {
 	prefix := gatewayBindingPrefix
 	maxLen := 253 - len(prefix)
 	if len(name) > maxLen {
-		name = name[:maxLen]
+		name = strings.TrimRight(name[:maxLen], "-")
 	}
 	return prefix + name
 }

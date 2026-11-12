@@ -2,7 +2,7 @@ IMAGE ?= ghcr.io/bzdvdn/easylb:dev
 GOLANGCI_LINT_VERSION ?= v2.15.0
 GOSEC_VERSION ?= v2.30.0
 
-.PHONY: build test vet fmt lint sec docker-build helm-lint helm-template clean
+.PHONY: build test vet fmt lint sec docker-build helm-lint helm-template e2e clean
 
 build:
 	CGO_ENABLED=0 go build -trimpath -o bin/controller ./cmd/controller
@@ -33,6 +33,9 @@ helm-lint:
 helm-template:
 	helm template easylb charts/easylb --namespace easylb-system \
 		-f charts/easylb/values-example.yaml --include-crds
+
+e2e:
+	./test/e2e/run.sh
 
 clean:
 	rm -rf bin

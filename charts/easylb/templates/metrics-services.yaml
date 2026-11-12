@@ -1,0 +1,39 @@
+{{- if .Values.metrics.service.enabled }}
+{{- if .Values.controller.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "easylb.fullname" . }}-controller-metrics
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "easylb.labels" . | nindent 4 }}
+    app.kubernetes.io/component: controller
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "easylb.controllerSelectorLabels" . | nindent 4 }}
+  ports:
+    - name: metrics
+      port: 8080
+      targetPort: metrics
+{{- end }}
+{{- if .Values.speaker.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "easylb.fullname" . }}-speaker-metrics
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "easylb.labels" . | nindent 4 }}
+    app.kubernetes.io/component: speaker
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "easylb.speakerSelectorLabels" . | nindent 4 }}
+  ports:
+    - name: metrics
+      port: 8082
+      targetPort: metrics
+{{- end }}
+{{- end }}

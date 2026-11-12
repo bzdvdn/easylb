@@ -117,6 +117,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 // SetupWithManager registers the controller with the manager.
 func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("service").
 		For(&corev1.Service{}).
 		Watches(&corev1.Node{},
 			handler.EnqueueRequestsFromMapFunc(r.servicesForNode),

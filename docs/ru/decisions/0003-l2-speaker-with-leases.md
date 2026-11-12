@@ -22,7 +22,7 @@
 
 ## Решение
 
-Вариант 2: отдельный Lease на `VIPBinding` + userspace ARP responder. VIP не
+Вариант 2: отдельный Lease на `VIPBinding` + userspace ARP/NDP responders. VIP не
 назначается на интерфейс.
 
 ## Почему

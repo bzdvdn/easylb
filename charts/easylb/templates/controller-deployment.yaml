@@ -65,6 +65,7 @@ spec:
             - --node-ip-types={{ .Values.controller.nodeIPTypes }}
             - --publish-node-ips={{ .Values.controller.publishNodeIPs }}
             - --enable-gateway-api={{ .Values.gatewayAPI.enabled }}
+            - --auto-assign-services={{ .Values.controller.autoAssignServices }}
             - --require-class={{ .Values.controller.requireClass }}
             - --leader-elect={{ .Values.controller.leaderElect }}
             - --leader-election-namespace={{ .Release.Namespace }}

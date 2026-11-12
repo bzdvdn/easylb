@@ -116,6 +116,22 @@ ip -br a | grep <VIP>
 - Reply arrives but the client uses a stale MAC: flush the client ARP cache
   (`ip neigh flush <VIP>`).
 
+## IPv6 NDP does not resolve
+
+```bash
+ip -6 neigh show <VIP>
+ip -6 maddr show dev <iface> | grep ff02::1:ff
+```
+
+- The speaker answers neighbor solicitations for IPv6 VIPs but never ICMP
+  echo; `ping` will not work for `mode: l2`.
+- Check speaker logs for `advertising VIPs` and that the VIP is present in
+  `VIPBinding.status.allocatedIPs`.
+- The interface must have a link-local IPv6 address and the solicited-node
+  multicast group must be joined. `newNDPResponder` failures are logged as
+  `failed to start NDP responder`.
+- Use TCP checks instead: `nc -6 -vz <VIP> 443`.
+
 ## ARP works, TCP fails
 
 - Check kube-proxy rules:
@@ -156,6 +172,24 @@ A current speaker recreates it.
 - `helm upgrade` does not update CRDs from `crds/`; apply them separately.
 - Ownership conflict with old static manifests: delete `deploy/easylb.yaml` and
   `deploy/easylb-speaker.yaml` resources before using the chart.
+- `no matches for kind "ServiceMonitor"`: set
+  `metrics.serviceMonitor.enabled: false` or install Prometheus Operator CRDs.
+
+## Automatic allocation
+
+- No `auto-<service>` binding: check that `controller.autoAssignServices` is
+  true, the Service is a managed `LoadBalancer`, `easylb.io/auto-assign` is not
+  `"false"`, and at least one `VIPPool` with `autoAssign: true` matches the
+  Service selectors.
+- An explicit `VIPBinding` exists: manual and Gateway-created bindings take
+  precedence; delete it if you want auto-allocation.
+- `PoolExhausted`: add addresses to the pool or delete unused bindings.
+- `spec.loadBalancerIP` / `metallb.io/loadBalancerIPs` not honored: check the
+  address is valid and not already claimed by another binding.
+- Auto binding stays after a pool was removed: this is intentional to avoid
+  dropping traffic. Delete the binding to release the VIP.
+- Shared IP conflict: Services with the same `allow-shared-ip` key must expose
+  different ports; overlapping ports are rejected.
 
 ## Gateway API
 

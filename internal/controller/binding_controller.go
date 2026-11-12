@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,6 +21,7 @@ import (
 
 	easylv1alpha1 "github.com/bzdvdn/easylb/api/v1alpha1"
 	"github.com/bzdvdn/easylb/internal/ipam"
+	"github.com/bzdvdn/easylb/internal/metrics"
 )
 
 const conditionReady = "Ready"
@@ -51,6 +53,11 @@ func (r *VIPBindingReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if err := r.Status().Patch(ctx, &binding, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{})); err != nil {
 		return ctrl.Result{}, err
 	}
+	result := "success"
+	if condition.Status != metav1.ConditionTrue {
+		result = "failure"
+	}
+	metrics.VIPAllocations.WithLabelValues(result, condition.Reason).Inc()
 	logger.Info("updated VIPBinding status",
 		"allocated", allocated,
 		"ready", condition.Status == metav1.ConditionTrue,
@@ -118,6 +125,7 @@ func (r *VIPBindingReconciler) resolvePool(ctx context.Context, binding *easylv1
 	if err != nil {
 		return binding.Status.AllocatedIPs, readyCondition(binding, metav1.ConditionFalse, "InvalidPool", err.Error())
 	}
+	poolAddresses = usablePoolAddresses(&pool, poolAddresses)
 
 	used, err := r.usedAddresses(ctx, binding)
 	if err != nil {
@@ -178,13 +186,47 @@ func (r *VIPBindingReconciler) usedAddresses(ctx context.Context, current *easyl
 		if len(ips) == 0 {
 			ips = binding.Status.AllocatedIPs
 		}
+		if len(ips) == 0 {
+			continue
+		}
+		shareable := r.canShare(ctx, current, binding)
+		otherHasPriority := bindingBefore(binding, types.NamespacedName{
+			Namespace: current.Namespace,
+			Name:      current.Name,
+		})
 		for _, raw := range ips {
-			if addr, err := parseIP(raw); err == nil {
+			if addr, err := parseIP(raw); err == nil && !shareable && otherHasPriority {
 				used[addr] = struct{}{}
 			}
 		}
 	}
 	return used, nil
+}
+
+func (r *VIPBindingReconciler) canShare(ctx context.Context, a, b *easylv1alpha1.VIPBinding) bool {
+	if a.Spec.SharingKey == "" || a.Spec.SharingKey != b.Spec.SharingKey {
+		return false
+	}
+	aSvc, err := r.bindingService(ctx, a)
+	if err != nil || aSvc == nil {
+		return false
+	}
+	bSvc, err := r.bindingService(ctx, b)
+	if err != nil || bSvc == nil {
+		return false
+	}
+	return !portsConflict(aSvc, bSvc)
+}
+
+func (r *VIPBindingReconciler) bindingService(ctx context.Context, binding *easylv1alpha1.VIPBinding) (*corev1.Service, error) {
+	if binding.Spec.ServiceRef.Name == "" {
+		return nil, nil
+	}
+	var svc corev1.Service
+	if err := r.Get(ctx, types.NamespacedName{Namespace: binding.Namespace, Name: binding.Spec.ServiceRef.Name}, &svc); err != nil {
+		return nil, err
+	}
+	return &svc, nil
 }
 
 func currentAllocation(binding *easylv1alpha1.VIPBinding, pool []netip.Addr, used map[netip.Addr]struct{}) (netip.Addr, bool) {
@@ -239,6 +281,13 @@ func containsAddress(addresses []netip.Addr, target netip.Addr) bool {
 		}
 	}
 	return false
+}
+
+func usablePoolAddresses(pool *easylv1alpha1.VIPPool, addresses []netip.Addr) []netip.Addr {
+	if !pool.Spec.AvoidBuggyIPs {
+		return addresses
+	}
+	return ipam.FilterBuggyIPv4(addresses)
 }
 
 func readyCondition(binding *easylv1alpha1.VIPBinding, status metav1.ConditionStatus, reason, message string) metav1.Condition {

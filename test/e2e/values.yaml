@@ -1,0 +1,25 @@
+controller:
+  image:
+    repository: easylb
+    tag: e2e
+  publishNodeIPs: false
+  requireClass: false
+
+speaker:
+  enabled: false
+
+gatewayAPI:
+  enabled: false
+
+metrics:
+  service:
+    enabled: false
+  serviceMonitor:
+    enabled: false
+
+pools:
+  e2e-vips:
+    addresses:
+      - 192.168.99.10-192.168.99.20
+    autoAssign: true
+    mode: l2

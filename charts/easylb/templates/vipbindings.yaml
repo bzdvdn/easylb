@@ -23,5 +23,8 @@ spec:
   {{- if $binding.requestedIP }}
   requestedIP: {{ $binding.requestedIP }}
   {{- end }}
+  {{- if $binding.sharingKey }}
+  sharingKey: {{ $binding.sharingKey }}
+  {{- end }}
 {{- end }}
 {{- end }}

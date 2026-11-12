@@ -57,6 +57,11 @@ type VIPBindingSpec struct {
 	// RequestedIP requests a specific address from the pool.
 	// +optional
 	RequestedIP string `json:"requestedIP,omitempty"`
+
+	// SharingKey allows multiple Services to share a VIP when they use the
+	// same key and do not expose overlapping ports. Empty means exclusive use.
+	// +optional
+	SharingKey string `json:"sharingKey,omitempty"`
 }
 
 // ServiceReference references a Service in the same namespace.

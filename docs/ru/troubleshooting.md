@@ -115,6 +115,22 @@ ip -br a | grep <VIP>
 - Ответ есть, но клиент использует старый MAC: очисти ARP-кэш
   (`ip neigh flush <VIP>`).
 
+## IPv6 NDP не резолвится
+
+```bash
+ip -6 neigh show <VIP>
+ip -6 maddr show dev <iface> | grep ff02::1:ff
+```
+
+- Speaker отвечает на neighbor solicitation для IPv6 VIP, но не отвечает на
+  ICMP echo; `ping` по `mode: l2` не работает.
+- Проверь логи speaker (`advertising VIPs`) и наличие VIP в
+  `VIPBinding.status.allocatedIPs`.
+- На интерфейсе должен быть link-local IPv6-адрес, а solicited-node multicast
+  группа — присоединена. Ошибки старта пишутся как
+  `failed to start NDP responder`.
+- Используй TCP-проверки: `nc -6 -vz <VIP> 443`.
+
 ## ARP работает, TCP нет
 
 - Проверь правила kube-proxy:
@@ -153,6 +169,24 @@ kubectl -n easylb-system delete lease <lease-name>
 - `helm upgrade` не обновляет CRD из `crds/`; применяй отдельно.
 - Конфликт ownership со статическими манифестами: удали ресурсы
   `deploy/easylb.yaml` и `deploy/easylb-speaker.yaml` перед Helm.
+- `no matches for kind "ServiceMonitor"`: выключи
+  `metrics.serviceMonitor.enabled` или поставь CRD Prometheus Operator.
+
+## Автоматическая аллокация
+
+- Нет binding'а `auto-<service>`: проверь, что `controller.autoAssignServices`
+  включён, Service — управляемый `LoadBalancer`, `easylb.io/auto-assign` не
+  равен `"false"`, и хотя бы один `VIPPool` с `autoAssign: true` совпадает по
+  selector'ам.
+- Есть явный `VIPBinding`: ручной и Gateway-binding имеют приоритет; удали его,
+  если нужна автоаллокация.
+- `PoolExhausted`: добавь адреса в пул или удали неиспользуемые binding'и.
+- `spec.loadBalancerIP` / `metallb.io/loadBalancerIPs` не применяется: проверь,
+  что адрес валиден и не занят другим binding'ом.
+- Auto-binding остался после удаления пула: это сделано намеренно, чтобы не
+  рвать трафик. Удали binding, чтобы освободить VIP.
+- Конфликт shared IP: у Service с одинаковым ключом `allow-shared-ip` должны
+  быть разные порты; пересекающиеся порты отклоняются.
 
 ## Gateway API
 

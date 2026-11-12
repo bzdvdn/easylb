@@ -4,7 +4,7 @@
 
 ## Problem
 
-The speaker opens an `AF_PACKET` socket for ARP. A non-root container with
+The speaker opens raw sockets for ARP and ICMPv6 NDP. A non-root container with
 `NET_RAW` can fail with `operation not permitted` because the effective
 capability is not granted by the default runtime.
 

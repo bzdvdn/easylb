@@ -9,6 +9,7 @@ import (
 // +kubebuilder:resource:scope=Cluster,shortName=vippool
 // +kubebuilder:printcolumn:name="Addresses",type=string,JSONPath=`.spec.addresses`
 // +kubebuilder:printcolumn:name="AutoAssign",type=boolean,JSONPath=`.spec.autoAssign`
+// +kubebuilder:printcolumn:name="Mode",type=string,JSONPath=`.spec.mode`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // VIPPool is a cluster-scoped pool of external VIP addresses.
@@ -28,11 +29,46 @@ type VIPPoolSpec struct {
 	// AutoAssign controls automatic allocation from this pool. Defaults to true.
 	// +optional
 	AutoAssign *bool `json:"autoAssign,omitempty"`
+
+	// AvoidBuggyIPs skips IPv4 addresses ending in .0 or .255.
+	// +optional
+	AvoidBuggyIPs bool `json:"avoidBuggyIPs,omitempty"`
+
+	// Mode is the default ownership mode for bindings created automatically
+	// from this pool. Defaults to l2.
+	// +kubebuilder:validation:Enum=external;l2;bgp
+	// +optional
+	Mode VIPMode `json:"mode,omitempty"`
+
+	// ServiceAllocation restricts which Services are auto-assigned from this
+	// pool. When unset, the pool is available to all Services. An empty
+	// selector matches everything.
+	// +optional
+	ServiceAllocation *ServiceAllocation `json:"serviceAllocation,omitempty"`
+}
+
+// ServiceAllocation selects Services that may receive addresses from a pool.
+type ServiceAllocation struct {
+	// NamespaceSelector selects namespaces by labels.
+	// +optional
+	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
+
+	// ServiceSelector selects Services by labels.
+	// +optional
+	ServiceSelector *metav1.LabelSelector `json:"serviceSelector,omitempty"`
 }
 
 // AutoAssignEnabled reports whether automatic allocation is enabled.
 func (in *VIPPool) AutoAssignEnabled() bool {
 	return in.Spec.AutoAssign == nil || *in.Spec.AutoAssign
+}
+
+// ModeOrDefault returns the pool ownership mode, defaulting to l2.
+func (in *VIPPool) ModeOrDefault() VIPMode {
+	if in.Spec.Mode == "" {
+		return VIPModeL2
+	}
+	return in.Spec.Mode
 }
 
 // +kubebuilder:object:root=true
@@ -82,6 +118,25 @@ func (in *VIPPoolSpec) DeepCopyInto(out *VIPPoolSpec) {
 		out.AutoAssign = new(bool)
 		*out.AutoAssign = *in.AutoAssign
 	}
+	if in.ServiceAllocation != nil {
+		out.ServiceAllocation = in.ServiceAllocation.DeepCopy()
+	}
+}
+
+// DeepCopy returns a deep copy of the receiver.
+func (in *ServiceAllocation) DeepCopy() *ServiceAllocation {
+	if in == nil {
+		return nil
+	}
+	out := new(ServiceAllocation)
+	*out = *in
+	if in.NamespaceSelector != nil {
+		out.NamespaceSelector = in.NamespaceSelector.DeepCopy()
+	}
+	if in.ServiceSelector != nil {
+		out.ServiceSelector = in.ServiceSelector.DeepCopy()
+	}
+	return out
 }
 
 // DeepCopyInto copies the receiver into out.

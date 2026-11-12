@@ -63,14 +63,18 @@ easyLB **не** предназначен для:
 - Замена ServiceLB в k3s/RKE2: без `svclb`-подов, hostPort и лишнего NAT.
 - Замена L2-режима MetalLB для небольших bare-metal кластеров: IPAM через
   `VIPPool`, ARP-анонс, leader election на каждый VIP и failover без BGP.
+- Автоаллокация в стиле MetalLB: подходящие `LoadBalancer` Service получают
+  `VIPBinding` и VIP без ручного создания CR.
 - Публикация IP нод и VIP в `status.loadBalancer.ingress`.
 - Режим `external` для VIP, которыми владеешь ты: keepalived/VRRP,
   аппаратный LB или любой внешний адрес.
-- Режим `l2`: VIP принадлежит easyLB, speaker анонсирует его через ARP, а
-  leader election и failover работают через Kubernetes Lease.
+- Режим `l2`: VIP принадлежит easyLB, speaker анонсирует IPv4 через ARP,
+  IPv6 через NDP, а leader election и failover работают через Kubernetes
+  Lease.
 - Автоматическая аллокация из `VIPPool` или явные адреса в `VIPBinding`.
 - HA controller: несколько реплик, leader election, PDB, spread по нодам,
   optimistic lock при записи статуса.
+- Prometheus-метрики и опциональный ServiceMonitor.
 - Сохранение client source IP при `externalTrafficPolicy: Local`.
 - Конфигурация только через CRD, без аннотаций на ingress/gateway Service.
 - Опциональная нативная интеграция с Gateway API: `Gateway` превращается в
@@ -82,7 +86,7 @@ easyLB **не** предназначен для:
 | Режим | Кто владеет VIP | Speaker | ICMP ping | Когда использовать |
 |---|---|---|---|---|
 | `external` | keepalived/VRRP, аппаратный LB или админ | нет | да, если адрес назначен | подключить существующий VIP; easyLB только публикует статус |
-| `l2` | easyLB speaker | да | нет (только ARP) | полноценный HA LB без keepalived, BGP и MetalLB |
+| `l2` | easyLB speaker | да | нет (только ARP/NDP) | полноценный HA LB без keepalived, BGP и MetalLB |
 | `bgp` | зарезервировано | будущее | — | будущий BGP-режим |
 
 Оба режима можно смешивать на одном Service: один binding для существующего
@@ -158,6 +162,10 @@ bindings:
 ```
 
 Готовый пример: `charts/easylb/values-example.yaml`.
+
+Можно вообще не задавать `bindings`: пул с `autoAssign: true` сам создаст
+`auto-<service>` bindings для подходящих `LoadBalancer` Service, как MetalLB.
+См. [автоматическую аллокацию](docs/ru/configuration.md#auto-allocation).
 
 ### 3. Проверка
 
@@ -259,8 +267,6 @@ v1.0.0 для Kubernetes 1.25), если CRD отдают `v1` API. ListenerSet,
 
 - нет `loadBalancerSourceRanges`;
 - нет hostPort/NAT-fallback для public cloud;
-- IPv6 для `l2`/NDP пока не реализован (контроллер может публиковать IPv6, но
-  speaker его пропускает);
 - `mode: bgp` зарезервирован, но не реализован;
 - CRD из Helm `crds/` не обновляются при `helm upgrade`;
 - speaker требует `hostNetwork`, root и `NET_RAW`; при PSA namespace должен
@@ -281,6 +287,8 @@ v1.0.0 для Kubernetes 1.25), если CRD отдают `v1` API. ListenerSet,
 - [Troubleshooting](docs/ru/troubleshooting.md)
 - [Сравнение с ServiceLB/MetalLB/kube-vip](docs/ru/comparison.md)
 - [Gateway API](docs/ru/gateway-api.md)
+- [Миграция с MetalLB](docs/ru/migration-metallb.md)
+- [Roadmap](ROADMAP.md)
 - [Архитектурные решения](docs/ru/decisions/)
 
 ## Разработка
@@ -294,6 +302,7 @@ make sec            # отдельный gosec-скан
 make docker-build IMAGE=<registry>/easylb:<tag>
 make helm-lint
 make helm-template
+make e2e             # k3s/k3d smoke test (test/e2e/run.sh)
 ```
 
 Структура:
@@ -312,8 +321,7 @@ charts/easylb/         Helm chart
 
 ## Roadmap
 
-- IPv6 NDP для speaker.
-- BGP/ECMP speaker (`mode: bgp`).
-- Метрики/ServiceMonitor и готовые алерты.
-- Опциональное enforcement `loadBalancerSourceRanges`.
-- Более умная диагностика конфликтов внешних владельцев VIP и easyLB.
+Полный статус, сделанное и план фич: [ROADMAP.md](ROADMAP.md).
+
+Текущий фокус: per-pool селекторы L2-анонса, e2e для shared VIP/IPv6 NDP и
+готовые алерты. BGP/BFD/ECMP остаются вне scope.

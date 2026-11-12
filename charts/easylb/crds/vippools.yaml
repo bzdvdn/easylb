@@ -23,6 +23,9 @@ spec:
     - name: AutoAssign
       type: boolean
       jsonPath: .spec.autoAssign
+    - name: Mode
+      type: string
+      jsonPath: .spec.mode
     - name: Age
       type: date
       jsonPath: .metadata.creationTimestamp
@@ -43,3 +46,60 @@ spec:
                   minLength: 1
               autoAssign:
                 type: boolean
+              avoidBuggyIPs:
+                type: boolean
+              mode:
+                type: string
+                enum:
+                - external
+                - l2
+                - bgp
+              serviceAllocation:
+                type: object
+                properties:
+                  namespaceSelector:
+                    type: object
+                    properties:
+                      matchExpressions:
+                        type: array
+                        items:
+                          type: object
+                          required:
+                          - key
+                          - operator
+                          properties:
+                            key:
+                              type: string
+                            operator:
+                              type: string
+                            values:
+                              type: array
+                              items:
+                                type: string
+                      matchLabels:
+                        type: object
+                        additionalProperties:
+                          type: string
+                  serviceSelector:
+                    type: object
+                    properties:
+                      matchExpressions:
+                        type: array
+                        items:
+                          type: object
+                          required:
+                          - key
+                          - operator
+                          properties:
+                            key:
+                              type: string
+                            operator:
+                              type: string
+                            values:
+                              type: array
+                              items:
+                                type: string
+                      matchLabels:
+                        type: object
+                        additionalProperties:
+                          type: string

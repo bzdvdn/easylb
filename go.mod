@@ -3,7 +3,7 @@ module github.com/bzdvdn/easylb
 go 1.26.0
 
 require (
-	github.com/go-logr/logr v1.4.3
+	github.com/go-logr/logr v1.4.4
 	github.com/mdlayher/arp v0.0.0-20260923112748-e9ee4960293e
 	github.com/mdlayher/ndp v1.1.0
 	github.com/prometheus/client_golang v1.22.0

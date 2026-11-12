@@ -115,7 +115,9 @@ English:
 - [Troubleshooting](en/troubleshooting.md)
 - [Comparison](en/comparison.md)
 - [Migrating from MetalLB](en/migration-metallb.md)
+- [Migrating from ServiceLB](en/migration-servicelb.md)
 - [Roadmap](roadmap.md)
+- [Examples](https://github.com/bzdvdn/easylb/tree/main/examples)
 - [Architecture decisions](en/decisions/0001-publish-only-controller.md)
 
 Russian:
@@ -128,6 +130,7 @@ Russian:
 - [Troubleshooting](ru/troubleshooting.md)
 - [Сравнение](ru/comparison.md)
 - [Миграция с MetalLB](ru/migration-metallb.md)
+- [Миграция с ServiceLB](ru/migration-servicelb.md)
 - [Roadmap](roadmap.md)
 - [Архитектурные решения](ru/decisions/0001-publish-only-controller.md)
 

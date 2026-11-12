@@ -288,7 +288,9 @@ v1.0.0 для Kubernetes 1.25), если CRD отдают `v1` API. ListenerSet,
 - [Сравнение с ServiceLB/MetalLB/kube-vip](docs/ru/comparison.md)
 - [Gateway API](docs/ru/gateway-api.md)
 - [Миграция с MetalLB](docs/ru/migration-metallb.md)
+- [Миграция с ServiceLB](docs/ru/migration-servicelb.md)
 - [Roadmap](ROADMAP.md)
+- [Примеры](examples/README.md)
 - [Архитектурные решения](docs/ru/decisions/)
 
 ## Разработка

@@ -39,6 +39,7 @@ nav:
       - Troubleshooting: en/troubleshooting.md
       - Comparison: en/comparison.md
       - Migrating from MetalLB: en/migration-metallb.md
+      - Migrating from ServiceLB: en/migration-servicelb.md
       - Architecture decisions:
           - Publish only from the controller: en/decisions/0001-publish-only-controller.md
           - CRD as the source of truth: en/decisions/0002-crd-as-source-of-truth.md
@@ -55,6 +56,7 @@ nav:
       - Troubleshooting: ru/troubleshooting.md
       - Сравнение: ru/comparison.md
       - Миграция с MetalLB: ru/migration-metallb.md
+      - Миграция с ServiceLB: ru/migration-servicelb.md
       - Архитектурные решения:
           - Публикация только из controller: ru/decisions/0001-publish-only-controller.md
           - CRD как источник истины: ru/decisions/0002-crd-as-source-of-truth.md

@@ -15,6 +15,7 @@ IPv6 NDP, and per-VIP Leases.
 - Source: <https://github.com/bzdvdn/easylb>
 - Docs: <https://bzdvdn.github.io/easylb/>
 - MetalLB migration: <https://bzdvdn.github.io/easylb/en/migration-metallb/>
+- Examples: <https://github.com/bzdvdn/easylb/tree/main/examples>
 
 ## Requirements
 

@@ -97,6 +97,16 @@ jobs:
             --set gatewayAPI.enabled=true \
             --set speaker.enabled=true > /tmp/gateway.yaml
 
+      - name: render examples
+        run: |
+          for values in examples/*/values.yaml; do
+            [ -f "$values" ] || continue
+            echo "rendering $values"
+            helm template easylb charts/easylb \
+              --namespace easylb-system \
+              -f "$values" >/dev/null
+          done
+
   image:
     name: Container image
     runs-on: ubuntu-latest

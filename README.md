@@ -291,7 +291,9 @@ English:
 - [Troubleshooting](docs/en/troubleshooting.md)
 - [Comparison with ServiceLB/MetalLB/kube-vip](docs/en/comparison.md)
 - [Migrating from MetalLB](docs/en/migration-metallb.md)
+- [Migrating from ServiceLB](docs/en/migration-servicelb.md)
 - [Roadmap](ROADMAP.md)
+- [Examples](examples/README.md)
 - [Architecture decisions](docs/en/decisions/)
 
 Russian:

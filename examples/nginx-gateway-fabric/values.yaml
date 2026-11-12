@@ -1,0 +1,22 @@
+controller:
+  publishNodeIPs: false
+  requireClass: false
+
+speaker:
+  enabled: true
+
+gatewayAPI:
+  enabled: true
+
+pools:
+  gateway-vips:
+    addresses:
+      - 192.168.56.241-192.168.56.249
+    autoAssign: true
+    mode: l2
+    serviceAllocation:
+      # Opt-in label: the NGINX data-plane Service is intentionally not
+      # auto-allocated. The Gateway annotation below creates its binding.
+      serviceSelector:
+        matchLabels:
+          easylb.io/auto-allocate: "true"

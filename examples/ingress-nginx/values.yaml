@@ -1,0 +1,20 @@
+controller:
+  publishNodeIPs: false
+  requireClass: false
+
+speaker:
+  enabled: true
+
+pools:
+  ingress-vips:
+    addresses:
+      - 192.168.56.240-192.168.56.249
+    autoAssign: true
+    mode: l2
+    serviceAllocation:
+      namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+      serviceSelector:
+        matchLabels:
+          app.kubernetes.io/name: ingress-nginx

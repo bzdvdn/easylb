@@ -132,9 +132,8 @@ Status: `[x]` done, `[ ]` not done yet.
 
 ### Migration and adoption
 
-- [ ] ServiceLB (klipper) migration guide, in addition to the MetalLB guide.
-- [ ] More examples: ingress-nginx, Envoy Gateway, NGINX Gateway Fabric.
-- [ ] Helm values schema (`values.schema.json`).
+- [x] ServiceLB (klipper) migration guide, in addition to the MetalLB guide.
+- [x] Examples: ingress-nginx, Envoy Gateway, NGINX Gateway Fabric.
 
 ## Not planned
 

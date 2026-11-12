@@ -32,6 +32,16 @@ func TestBindingSource(t *testing.T) {
 			Mode:       easylv1alpha1.VIPModeExternal,
 			VIPs:       []string{"10.99.50.100"},
 		},
+		Status: easylv1alpha1.VIPBindingStatus{AllocatedIPs: []string{"10.99.50.100"}},
+	}
+	invalid := &easylv1alpha1.VIPBinding{
+		ObjectMeta: metav1.ObjectMeta{Name: "invalid", Namespace: "default"},
+		Spec: easylv1alpha1.VIPBindingSpec{
+			ServiceRef: easylv1alpha1.ServiceReference{Name: "ingress"},
+			Mode:       easylv1alpha1.VIPModeL2,
+			VIPs:       []string{"10.99.50.101"},
+			PoolRef:    &easylv1alpha1.PoolReference{Name: "pool"},
+		},
 	}
 	pooled := &easylv1alpha1.VIPBinding{
 		ObjectMeta: metav1.ObjectMeta{Name: "pooled", Namespace: "default"},
@@ -52,7 +62,7 @@ func TestBindingSource(t *testing.T) {
 
 	c := fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(svc, explicit, pooled, unrelated).
+		WithObjects(svc, explicit, invalid, pooled, unrelated).
 		Build()
 
 	got, err := BindingSource{Client: c}.VIPs(context.Background(), svc)

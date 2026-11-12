@@ -31,10 +31,9 @@ func (s BindingSource) VIPs(ctx context.Context, svc *corev1.Service) ([]Spec, e
 		if binding.Spec.ServiceRef.Name != svc.Name {
 			continue
 		}
-		ips := binding.Spec.VIPs
-		if len(ips) == 0 {
-			ips = binding.Status.AllocatedIPs
-		}
+		// Publish only addresses validated by the VIPBinding controller.
+		// Raw spec.vips may be invalid (for example vips+poolRef).
+		ips := binding.Status.AllocatedIPs
 		mode := Mode(binding.Spec.Mode)
 		if mode == "" {
 			mode = ModeExternal

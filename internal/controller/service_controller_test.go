@@ -209,6 +209,7 @@ func testVIPBinding(name, serviceName string, mode easylv1alpha1.VIPMode, vips .
 			Mode:       mode,
 			VIPs:       vips,
 		},
+		Status: easylv1alpha1.VIPBindingStatus{AllocatedIPs: append([]string(nil), vips...)},
 	}
 }
 

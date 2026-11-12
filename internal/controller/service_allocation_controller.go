@@ -269,10 +269,7 @@ func (r *ServiceAllocationReconciler) usedAddresses(ctx context.Context, exclude
 		if binding.Namespace == exclude.Namespace && binding.Name == exclude.Name {
 			continue
 		}
-		ips := binding.Spec.VIPs
-		if len(ips) == 0 {
-			ips = binding.Status.AllocatedIPs
-		}
+		ips := binding.Status.AllocatedIPs
 		for _, raw := range ips {
 			if addr, err := parseIP(raw); err == nil {
 				used[addr] = struct{}{}
@@ -314,10 +311,7 @@ func (r *ServiceAllocationReconciler) findSharedAllocation(ctx context.Context, 
 		if !bindingBefore(binding, self) {
 			continue
 		}
-		ips := binding.Spec.VIPs
-		if len(ips) == 0 {
-			ips = binding.Status.AllocatedIPs
-		}
+		ips := binding.Status.AllocatedIPs
 		if len(ips) == 0 {
 			continue
 		}

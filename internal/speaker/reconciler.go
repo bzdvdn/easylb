@@ -96,10 +96,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{RequeueAfter: r.RequeueAfter}, nil
 	}
 
-	rawVIPs := binding.Spec.VIPs
-	if len(rawVIPs) == 0 {
-		rawVIPs = binding.Status.AllocatedIPs
-	}
+	// Advertise only addresses validated by the VIPBinding controller.
+	rawVIPs := binding.Status.AllocatedIPs
 	addresses := make([]netip.Addr, 0, len(rawVIPs))
 	for _, raw := range rawVIPs {
 		addr, err := netip.ParseAddr(raw)

@@ -182,10 +182,7 @@ func (r *VIPBindingReconciler) usedAddresses(ctx context.Context, current *easyl
 		if binding.Namespace == current.Namespace && binding.Name == current.Name {
 			continue
 		}
-		ips := binding.Spec.VIPs
-		if len(ips) == 0 {
-			ips = binding.Status.AllocatedIPs
-		}
+		ips := binding.Status.AllocatedIPs
 		if len(ips) == 0 {
 			continue
 		}

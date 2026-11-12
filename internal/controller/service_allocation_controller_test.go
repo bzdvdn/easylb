@@ -421,6 +421,7 @@ func autoTestBinding(name, namespace, service string, vips []string) *easylv1alp
 			Mode:       easylv1alpha1.VIPModeL2,
 			VIPs:       vips,
 		},
+		Status: easylv1alpha1.VIPBindingStatus{AllocatedIPs: append([]string(nil), vips...)},
 	}
 }
 

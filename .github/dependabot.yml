@@ -9,6 +9,19 @@ updates:
       go-minor-patch:
         patterns: ["*"]
         update-types: ["minor", "patch"]
+    ignore:
+      # Kubernetes libraries are upgraded together and on purpose; patch-only
+      # updates are safe for this controller.
+      - dependency-name: "k8s.io/*"
+        update-types:
+          - version-update:semver-minor
+          - version-update:semver-major
+      - dependency-name: "sigs.k8s.io/controller-runtime"
+        update-types:
+          - version-update:semver-minor
+          - version-update:semver-major
+      # Pseudo-versioned dependency; upgrade manually when a tag is available.
+      - dependency-name: "github.com/mdlayher/arp"
   - package-ecosystem: github-actions
     directory: /
     schedule:

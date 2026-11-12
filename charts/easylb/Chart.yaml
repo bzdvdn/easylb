@@ -2,8 +2,8 @@ apiVersion: v2
 name: easylb
 description: Lightweight Kubernetes LoadBalancer and ServiceLB/MetalLB L2 alternative for bare-metal, on-prem, k3s and RKE2
 type: application
-version: 0.1.2
-appVersion: "0.1.2"
+version: 0.1.3
+appVersion: "0.1.3"
 kubeVersion: ">=1.24.0-0"
 home: https://bzdvdn.github.io/easylb/
 icon: https://raw.githubusercontent.com/bzdvdn/easylb/master/docs/assets/easylb-icon.svg

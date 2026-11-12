@@ -6,6 +6,15 @@ semantic versioning once it reaches 1.0.
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-11-12
+
+### Fixed
+
+- Publish and advertise only IPs validated in
+  `VIPBinding.status.allocatedIPs`; invalid or conflicted bindings no longer
+  leak raw `spec.vips` into Service status or ARP/NDP.
+- Conflict detection and automatic allocation ignore unvalidated `spec.vips`.
+
 ## [0.1.2] - 2026-11-12
 
 ### Changed

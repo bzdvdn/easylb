@@ -1,0 +1,37 @@
+# Example values for a test cluster.
+#
+# - The chart defaults are used for images: ghcr.io/bzdvdn/easylb:<appVersion>.
+#   Override controller.image and speaker.image for a fork or a locally built
+#   image.
+# - 192.168.56.250 stays on keepalived (external mode).
+# - 192.168.56.240 is automatically allocated by easyLB and advertised by the
+#   L2 speaker.
+# - Node IPs are not published (publishNodeIPs=false); set it to true if DNS
+#   still points at node IPs.
+
+controller:
+  publishNodeIPs: false
+
+speaker:
+  enabled: true
+
+pools:
+  ingress-vips:
+    addresses:
+      - 192.168.56.240-192.168.56.249
+    autoAssign: true
+
+bindings:
+  ingress-easylb:
+    namespace: ingress-nginx
+    serviceRef: my-release-ingress-nginx-controller
+    mode: l2
+    poolRef: ingress-vips
+  # Optional: publish a VIP you already own (keepalived/VRRP, hardware LB,
+  # or any externally managed address).
+  ingress-external:
+    namespace: ingress-nginx
+    serviceRef: my-release-ingress-nginx-controller
+    mode: external
+    vips:
+      - 192.168.56.250

@@ -1,0 +1,35 @@
+# Example: expose an existing ingress-nginx Service through easyLB.
+#
+# This Service was created without spec.loadBalancerClass. The field is
+# immutable, so the controller is expected to run with --require-class=false
+# (the default in deploy/easylb.yaml) and adopt it by annotation.
+#
+# For a NEW Service, prefer setting:
+#   spec.loadBalancerClass: easylb.io/easylb
+# and run the controller with --require-class=true.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-release-ingress-nginx-controller
+  namespace: ingress-nginx
+  # VIPs are configured with a VIPBinding; see deploy/example-vipbinding.yaml.
+spec:
+  type: LoadBalancer
+  # Local is what makes kube-proxy preserve the client source IP. Every node
+  # that may receive traffic needs a local ingress-nginx endpoint; the
+  # ingress-nginx DaemonSet provides that.
+  externalTrafficPolicy: Local
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+    - name: https
+      port: 443
+      targetPort: https
+      protocol: TCP
+  selector:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/name: ingress-nginx

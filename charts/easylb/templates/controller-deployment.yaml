@@ -1,0 +1,96 @@
+{{- if .Values.controller.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "easylb.fullname" . }}-controller
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "easylb.labels" . | nindent 4 }}
+    app.kubernetes.io/component: controller
+spec:
+  replicas: {{ .Values.controller.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      {{- include "easylb.controllerSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "easylb.labels" . | nindent 8 }}
+        app.kubernetes.io/component: controller
+      {{- with .Values.controller.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "easylb.fullname" . }}-controller
+      {{- with .Values.controller.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      priorityClassName: {{ .Values.controller.priorityClassName }}
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        {{- toYaml .Values.controller.podSecurityContext | nindent 8 }}
+      {{- with .Values.controller.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.controller.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.controller.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml .Values.controller.topologySpreadConstraints | nindent 8 }}
+      {{- else }}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "easylb.controllerSelectorLabels" . | nindent 14 }}
+      {{- end }}
+      containers:
+        - name: controller
+          image: {{ include "easylb.controllerImage" . }}
+          imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
+          args:
+            - --load-balancer-class={{ .Values.controller.loadBalancerClass }}
+            - --node-ip-types={{ .Values.controller.nodeIPTypes }}
+            - --publish-node-ips={{ .Values.controller.publishNodeIPs }}
+            - --enable-gateway-api={{ .Values.gatewayAPI.enabled }}
+            - --require-class={{ .Values.controller.requireClass }}
+            - --leader-elect={{ .Values.controller.leaderElect }}
+            - --leader-election-namespace={{ .Release.Namespace }}
+            - --leader-election-lease-duration={{ .Values.controller.leaseDuration }}
+            - --leader-election-renew-deadline={{ .Values.controller.renewDeadline }}
+            - --leader-election-retry-period={{ .Values.controller.retryPeriod }}
+            - --requeue-after={{ .Values.controller.requeueAfter }}
+          ports:
+            - name: metrics
+              containerPort: 8080
+            - name: health
+              containerPort: 8081
+          securityContext:
+            {{- toYaml .Values.controller.securityContext | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.controller.resources | nindent 12 }}
+{{- end }}

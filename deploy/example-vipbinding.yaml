@@ -1,0 +1,37 @@
+# Example VIPPool + VIPBinding.
+#
+# The Service itself is not annotated: VIP configuration lives in VIPBinding.
+# VIPs with mode: external are managed by keepalived/administrators and are
+# only published into status.loadBalancer.ingress. VIPs with mode: l2 are
+# advertised by the easyLB speaker.
+---
+apiVersion: easylb.io/v1alpha1
+kind: VIPPool
+metadata:
+  name: ingress-vips
+spec:
+  addresses:
+    - 192.168.56.240-192.168.56.250
+  autoAssign: true
+---
+apiVersion: easylb.io/v1alpha1
+kind: VIPBinding
+metadata:
+  name: ingress-nginx
+  namespace: ingress-nginx
+spec:
+  serviceRef:
+    name: my-release-ingress-nginx-controller
+  mode: l2
+  poolRef:
+    name: ingress-vips
+  # requestedIP: 192.168.56.250   # optional
+  #
+  # Explicit VIPs (no pool) instead:
+  # vips:
+  #   - 192.168.56.250
+  #
+  # Externally managed VIP (keepalived), no speaker:
+  # mode: external
+  # vips:
+  #   - 192.168.56.250

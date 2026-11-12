@@ -1,0 +1,94 @@
+{{- if .Values.speaker.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "easylb.fullname" . }}-speaker
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "easylb.labels" . | nindent 4 }}
+    app.kubernetes.io/component: speaker
+spec:
+  selector:
+    matchLabels:
+      {{- include "easylb.speakerSelectorLabels" . | nindent 6 }}
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        {{- include "easylb.labels" . | nindent 8 }}
+        app.kubernetes.io/component: speaker
+      {{- with .Values.speaker.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "easylb.fullname" . }}-speaker
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      priorityClassName: {{ .Values.speaker.priorityClassName }}
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        {{- toYaml .Values.speaker.podSecurityContext | nindent 8 }}
+      {{- with .Values.speaker.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.speaker.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.speaker.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: speaker
+          image: {{ include "easylb.speakerImage" . }}
+          imagePullPolicy: {{ .Values.speaker.image.pullPolicy }}
+          command: ["/speaker"]
+          args:
+            - --lease-namespace={{ .Release.Namespace }}
+            - --node-ip-type={{ .Values.speaker.nodeIPType }}
+            - --load-balancer-class={{ .Values.speaker.loadBalancerClass }}
+            - --require-class={{ .Values.speaker.requireClass }}
+            - --lease-duration={{ .Values.speaker.leaseDuration }}
+            - --renew-deadline={{ .Values.speaker.renewDeadline }}
+            - --retry-period={{ .Values.speaker.retryPeriod }}
+            - --requeue-after={{ .Values.speaker.requeueAfter }}
+            {{- if .Values.speaker.interface }}
+            - --interface={{ .Values.speaker.interface }}
+            {{- end }}
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          ports:
+            - name: metrics
+              containerPort: 8082
+            - name: health
+              containerPort: 8083
+          securityContext:
+            {{- toYaml .Values.speaker.securityContext | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.speaker.resources | nindent 12 }}
+{{- end }}

@@ -1,0 +1,12 @@
+bin/
+dist/
+*.test
+.idea/
+.vscode/
+
+# Local, untracked testing notes
+LOCAL_TESTING.md
+*.local.md
+
+# MkDocs build output
+site/

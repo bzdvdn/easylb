@@ -1,0 +1,151 @@
+# easyLB L2 speaker.
+#
+# Runs on every node and advertises only VIPs with mode: l2. VIPs with mode:
+# external (keepalived and friends) are never touched by the speaker.
+#
+# Requires deploy/crds.yaml to be installed first.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: easylb-speaker
+  namespace: easylb-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: easylb-speaker
+rules:
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["easylb.io"]
+    resources: ["vipbindings"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: easylb-speaker
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: easylb-speaker
+subjects:
+  - kind: ServiceAccount
+    name: easylb-speaker
+    namespace: easylb-system
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: easylb-speaker
+  namespace: easylb-system
+  labels:
+    app.kubernetes.io/name: easylb
+    app.kubernetes.io/component: speaker
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: easylb
+      app.kubernetes.io/component: speaker
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: easylb
+        app.kubernetes.io/component: speaker
+    spec:
+      serviceAccountName: easylb-speaker
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      priorityClassName: system-node-critical
+      terminationGracePeriodSeconds: 30
+      nodeSelector:
+        kubernetes.io/os: linux
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: CriticalAddonsOnly
+          operator: Exists
+      securityContext:
+        # AF_PACKET sockets require an effective NET_RAW capability. Non-root
+        # containers do not get one from the default runtime, so run as root
+        # while still dropping every other capability.
+        runAsNonRoot: false
+        runAsUser: 0
+        runAsGroup: 0
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: speaker
+          image: ghcr.io/bzdvdn/easylb:0.1.0
+          imagePullPolicy: Always
+          command: ["/speaker"]
+          args:
+            - --lease-namespace=easylb-system
+            - --node-ip-type=InternalIP
+            - --load-balancer-class=easylb.io/easylb
+            - --require-class=false
+            - --lease-duration=15s
+            - --renew-deadline=10s
+            - --retry-period=2s
+            - --requeue-after=30s
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          ports:
+            - name: metrics
+              containerPort: 8082
+            - name: health
+              containerPort: 8083
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              add: ["NET_RAW"]
+              drop: ["ALL"]
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 24Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi

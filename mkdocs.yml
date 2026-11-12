@@ -1,0 +1,61 @@
+site_name: easyLB
+site_description: Lightweight Kubernetes LoadBalancer controller and ServiceLB/MetalLB L2 alternative for bare-metal, on-prem, k3s and RKE2 clusters
+site_author: easyLB contributors
+repo_url: https://github.com/bzdvdn/easylb
+repo_name: bzdvdn/easylb
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - content.code.copy
+    - search.suggest
+    - search.highlight
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - tables
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md
+  - English:
+      - Architecture: en/architecture.md
+      - Configuration: en/configuration.md
+      - Source IP: en/source-ip.md
+      - Gateway API: en/gateway-api.md
+      - Operations and HA: en/operations.md
+      - Troubleshooting: en/troubleshooting.md
+      - Comparison: en/comparison.md
+      - Architecture decisions:
+          - Publish only from the controller: en/decisions/0001-publish-only-controller.md
+          - CRD as the source of truth: en/decisions/0002-crd-as-source-of-truth.md
+          - L2 speaker with Leases: en/decisions/0003-l2-speaker-with-leases.md
+          - Speaker root and NET_RAW: en/decisions/0004-speaker-root-net-raw.md
+          - L2 VIP is not assigned: en/decisions/0005-l2-vip-not-assigned.md
+          - Controller HA: en/decisions/0006-controller-ha.md
+  - Русский:
+      - Архитектура: ru/architecture.md
+      - Конфигурация: ru/configuration.md
+      - Source IP: ru/source-ip.md
+      - Gateway API: ru/gateway-api.md
+      - Эксплуатация и HA: ru/operations.md
+      - Troubleshooting: ru/troubleshooting.md
+      - Сравнение: ru/comparison.md
+      - Архитектурные решения:
+          - Публикация только из controller: ru/decisions/0001-publish-only-controller.md
+          - CRD как источник истины: ru/decisions/0002-crd-as-source-of-truth.md
+          - L2 speaker с Leases: ru/decisions/0003-l2-speaker-with-leases.md
+          - Speaker root и NET_RAW: ru/decisions/0004-speaker-root-net-raw.md
+          - L2 VIP не назначается на интерфейс: ru/decisions/0005-l2-vip-not-assigned.md
+          - HA controller: ru/decisions/0006-controller-ha.md

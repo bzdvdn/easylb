@@ -1,0 +1,25 @@
+easyLB has been installed in namespace {{ .Release.Namespace }}.
+
+Check the controller and speaker:
+
+  kubectl -n {{ .Release.Namespace }} get deploy,pods,ds
+  kubectl -n {{ .Release.Namespace }} get lease
+  kubectl get vippool
+  kubectl get vipbinding -A
+
+VIPs are configured with VIPPool and VIPBinding resources, not with Service
+annotations:
+
+  helm upgrade {{ .Release.Name }} {{ .Chart.Name }} \
+    --namespace {{ .Release.Namespace }} \
+    -f values-example.yaml
+
+Remember:
+  * external VIPs are owned by keepalived and are only published by easyLB;
+  * l2 VIPs are advertised by the easyLB speaker;
+  * an l2 VIP is not assigned to the interface, so ping does not work for it;
+    use TCP checks instead.
+
+The speaker runs as root with NET_RAW because AF_PACKET sockets require an
+effective raw-socket capability. If Pod Security Admission is enforced, the
+namespace must allow this (for example pod-security.kubernetes.io/enforce=privileged).

@@ -1,0 +1,17 @@
+{{- if .Values.pools }}
+{{- range $name, $pool := .Values.pools }}
+---
+apiVersion: easylb.io/v1alpha1
+kind: VIPPool
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "easylb.labels" $ | nindent 4 }}
+spec:
+  addresses:
+    {{- required (printf "pools.%s.addresses is required" $name) $pool.addresses | toYaml | nindent 4 }}
+  {{- if hasKey $pool "autoAssign" }}
+  autoAssign: {{ $pool.autoAssign }}
+  {{- end }}
+{{- end }}
+{{- end }}

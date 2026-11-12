@@ -1,0 +1,172 @@
+# easyLB controller.
+#
+# easyLB does not touch packet forwarding. It publishes node IPs and external
+# VIPs into status.loadBalancer.ingress; kube-proxy programs the actual rules.
+#
+# Before installing, disable the built-in k3s/RKE2 ServiceLB so that two
+# controllers do not fight over the same status field:
+#   k3s:  --disable servicelb
+#   RKE2: disable servicelb in the server configuration
+#
+# For existing Services that were created without spec.loadBalancerClass,
+# keep --require-class=false (default below). loadBalancerClass is immutable
+# once set, so adding it to an existing Service requires recreating it.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: easylb-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: easylb-controller
+  namespace: easylb-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: easylb-controller
+rules:
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["services/status"]
+    verbs: ["get", "patch", "update"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["easylb.io"]
+    resources: ["vipbindings"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["easylb.io"]
+    resources: ["vippools"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["easylb.io"]
+    resources: ["vipbindings/status"]
+    verbs: ["get", "patch", "update"]
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["gateways"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: easylb-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: easylb-controller
+subjects:
+  - kind: ServiceAccount
+    name: easylb-controller
+    namespace: easylb-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: easylb-controller
+  namespace: easylb-system
+  labels:
+    app.kubernetes.io/name: easylb
+    app.kubernetes.io/component: controller
+spec:
+  # Two replicas with leader election: one active, one standby. A single pod or
+  # node failure does not stop status reconciliation. Existing traffic is
+  # unaffected even while a new leader is being elected.
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: easylb
+      app.kubernetes.io/component: controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: easylb
+        app.kubernetes.io/component: controller
+    spec:
+      serviceAccountName: easylb-controller
+      priorityClassName: system-cluster-critical
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: easylb
+              app.kubernetes.io/component: controller
+      containers:
+        - name: controller
+          image: ghcr.io/bzdvdn/easylb:0.1.0
+          imagePullPolicy: Always
+          args:
+            - --load-balancer-class=easylb.io/easylb
+            - --node-ip-types=InternalIP
+            - --publish-node-ips=true
+            - --require-class=false
+            - --leader-elect=true
+            - --leader-election-namespace=easylb-system
+            - --leader-election-lease-duration=15s
+            - --leader-election-renew-deadline=10s
+            - --leader-election-retry-period=2s
+          ports:
+            - name: metrics
+              containerPort: 8080
+            - name: health
+              containerPort: 8081
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 20m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: easylb-controller
+  namespace: easylb-system
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: easylb
+      app.kubernetes.io/component: controller

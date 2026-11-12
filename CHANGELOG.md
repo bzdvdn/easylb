@@ -6,16 +6,26 @@ semantic versioning once it reaches 1.0.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-12
+
 ### Added
 
 - Apache-2.0 license.
 - `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `ADOPTERS.md`, issue
-  and pull request templates, Dependabot, and a CodeQL workflow.
+  and pull request templates, and a CodeQL workflow.
 - MetalLB and ServiceLB migration guides.
 - Ready-to-use examples for ingress-nginx, Envoy Gateway, and NGINX Gateway
   Fabric.
 - Community page, repository setup checklist, README banner, badges, and a
   short ServiceLB/MetalLB comparison table.
+- Chart metadata for Artifact Hub (`home`, `icon`, `sources`, `maintainers`,
+  `keywords`).
+
+### Changed
+
+- Group Dependabot updates to reduce pull request noise.
+- Trigger CI, Docs, E2E, and CodeQL on both `main` and `master`; docs links and
+  edit URLs point to `master`.
 
 ## [0.1.0] - 2026-11-12
 

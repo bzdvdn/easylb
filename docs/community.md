@@ -9,18 +9,18 @@ feedback, and pull requests are all welcome.
   questions, ideas, show-and-tell, and design discussions.
 - [GitHub Issues](https://github.com/bzdvdn/easylb/issues) — reproducible bugs
   and concrete feature requests.
-- [ROADMAP.md](https://github.com/bzdvdn/easylb/blob/main/ROADMAP.md) — what is
+- [ROADMAP.md](https://github.com/bzdvdn/easylb/blob/master/ROADMAP.md) — what is
   done, what is planned, and what is intentionally out of scope.
 
 ## Contribute
 
-- [CONTRIBUTING.md](https://github.com/bzdvdn/easylb/blob/main/CONTRIBUTING.md)
+- [CONTRIBUTING.md](https://github.com/bzdvdn/easylb/blob/master/CONTRIBUTING.md)
   — development setup, tests, lint, and PR expectations.
-- [CODE_OF_CONDUCT.md](https://github.com/bzdvdn/easylb/blob/main/CODE_OF_CONDUCT.md)
+- [CODE_OF_CONDUCT.md](https://github.com/bzdvdn/easylb/blob/master/CODE_OF_CONDUCT.md)
   — community behavior.
-- [SECURITY.md](https://github.com/bzdvdn/easylb/blob/main/SECURITY.md) — report
+- [SECURITY.md](https://github.com/bzdvdn/easylb/blob/master/SECURITY.md) — report
   vulnerabilities privately.
-- [ADOPTERS.md](https://github.com/bzdvdn/easylb/blob/main/ADOPTERS.md) — add
+- [ADOPTERS.md](https://github.com/bzdvdn/easylb/blob/master/ADOPTERS.md) — add
   your organization if you use easyLB.
 
 ## Spread the word
@@ -40,7 +40,7 @@ permission.
 ## Project links
 
 - [Documentation](https://bzdvdn.github.io/easylb/)
-- [Examples](https://github.com/bzdvdn/easylb/tree/main/examples)
+- [Examples](https://github.com/bzdvdn/easylb/tree/master/examples)
 - [MetalLB migration](https://bzdvdn.github.io/easylb/en/migration-metallb/)
 - [ServiceLB migration](https://bzdvdn.github.io/easylb/en/migration-servicelb/)
 - [Releases](https://github.com/bzdvdn/easylb/releases)

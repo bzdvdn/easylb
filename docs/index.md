@@ -120,7 +120,7 @@ English:
 - [Migrating from ServiceLB](en/migration-servicelb.md)
 - [Roadmap](roadmap.md)
 - [Community](community.md)
-- [Examples](https://github.com/bzdvdn/easylb/tree/main/examples)
+- [Examples](https://github.com/bzdvdn/easylb/tree/master/examples)
 - [Architecture decisions](en/decisions/0001-publish-only-controller.md)
 
 Russian:

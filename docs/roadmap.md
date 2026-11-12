@@ -2,7 +2,7 @@
 
 The canonical roadmap, completed work, planned features, and out-of-scope
 items live in
-[ROADMAP.md](https://github.com/bzdvdn/easylb/blob/main/ROADMAP.md).
+[ROADMAP.md](https://github.com/bzdvdn/easylb/blob/master/ROADMAP.md).
 
 Current focus:
 

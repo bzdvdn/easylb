@@ -1,7 +1,23 @@
 apiVersion: v2
 name: easylb
-description: Lightweight Kubernetes LoadBalancer controller for node IPs and external VIPs
+description: Lightweight Kubernetes LoadBalancer and ServiceLB/MetalLB L2 alternative for bare-metal, on-prem, k3s and RKE2
 type: application
-version: 0.1.0
-appVersion: "0.1.0"
+version: 0.1.1
+appVersion: "0.1.1"
 kubeVersion: ">=1.24.0-0"
+home: https://bzdvdn.github.io/easylb/
+icon: https://raw.githubusercontent.com/bzdvdn/easylb/master/docs/assets/easylb-icon.svg
+sources:
+  - https://github.com/bzdvdn/easylb
+maintainers:
+  - name: bzdvdn
+    url: https://github.com/bzdvdn
+keywords:
+  - kubernetes
+  - loadbalancer
+  - metallb
+  - servicelb
+  - k3s
+  - rke2
+  - bare-metal
+  - gateway-api
